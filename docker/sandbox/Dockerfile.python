@@ -1,0 +1,9 @@
+# Python Sandbox Image — Python 3.12 minimal
+FROM python:3.12-alpine
+
+WORKDIR /sandbox
+
+RUN adduser -D sandboxuser
+USER sandboxuser
+
+CMD ["python3", "--version"]

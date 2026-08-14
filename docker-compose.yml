@@ -1,0 +1,286 @@
+version: '3.9'
+
+networks:
+  codecheckHub-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+
+services:
+  # ─────────────────────────────────────────
+  # Infrastructure
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: codecheckHub-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - codecheckHub-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: codecheckHub-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - codecheckHub-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: codecheckHub-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # Management UI
+    networks:
+      - codecheckHub-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  sonarqube:
+    image: sonarqube:10-community
+    container_name: codecheckHub-sonarqube
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://postgres:5432/postgres
+      SONAR_JDBC_USERNAME: postgres
+      SONAR_JDBC_PASSWORD: postgres123
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    ports:
+      - "9000:9000"
+    networks:
+      - codecheckHub-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────
+  # Backend Services
+  # ─────────────────────────────────────────
+  identity-service:
+    build:
+      context: ./services/identity-service
+      dockerfile: Dockerfile
+    container_name: identity-service
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_identity
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres123
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
+    ports:
+      - "8081:8081"
+    networks:
+      - codecheckHub-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  course-service:
+    build:
+      context: ./services/course-service
+      dockerfile: Dockerfile
+    container_name: course-service
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_course
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres123
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+    ports:
+      - "8082:8082"
+    networks:
+      - codecheckHub-net
+    depends_on:
+      identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  submission-service:
+    build:
+      context: ./services/submission-service
+      dockerfile: Dockerfile
+    container_name: submission-service
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_submission
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres123
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      COURSE_SERVICE_URL: http://course-service:8082
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+    ports:
+      - "8083:8083"
+    networks:
+      - codecheckHub-net
+    depends_on:
+      course-service:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  judge-service:
+    build:
+      context: ./services/judge-service
+      dockerfile: Dockerfile
+    container_name: judge-service
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_judge
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres123
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      SONAR_URL: http://sonarqube:9000
+      SONAR_TOKEN: ${SONAR_TOKEN}
+      COURSE_SERVICE_URL: http://course-service:8082
+      SUBMISSION_SERVICE_URL: http://submission-service:8083
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker-in-Docker
+    ports:
+      - "8084:8084"
+    networks:
+      - codecheckHub-net
+    depends_on:
+      submission-service:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_notification
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres123
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+    ports:
+      - "8085:8085"
+    networks:
+      - codecheckHub-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    env_file: .env
+    environment:
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      COURSE_SERVICE_URL: http://course-service:8082
+      SUBMISSION_SERVICE_URL: http://submission-service:8083
+      JUDGE_SERVICE_URL: http://judge-service:8084
+      NOTIFICATION_SERVICE_URL: http://notification-service:8085
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8080:8080"
+    networks:
+      - codecheckHub-net
+    depends_on:
+      identity-service:
+        condition: service_healthy
+      course-service:
+        condition: service_healthy
+      submission-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────
+  # Frontend
+  # ─────────────────────────────────────────
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_WS_URL: /api/ws
+    container_name: codecheckHub-client
+    ports:
+      - "5173:80"
+    networks:
+      - codecheckHub-net
+    depends_on:
+      - api-gateway

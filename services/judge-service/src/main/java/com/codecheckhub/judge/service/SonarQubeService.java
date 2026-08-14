@@ -1,0 +1,112 @@
+package com.codecheckhub.judge.service;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.*;
+
+@Service
+@Slf4j
+public class SonarQubeService {
+
+    @Value("${sonar.url:http://localhost:9000}")
+    private String sonarUrl;
+
+    @Value("${sonar.token:}")
+    private String sonarToken;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    /**
+     * Phân tích code qua SonarQube API và trả về danh sách issues (JSON)
+     * Note: Trong thực tế, SonarQube cần chạy scanner CLI.
+     * Đây là simplified version gọi API để lấy metrics sau khi scanner đã chạy.
+     */
+    public String analyzeCode(String code, String language, String projectKey) {
+        if (sonarToken == null || sonarToken.isEmpty()) {
+            log.warn("SonarQube token not configured, skipping analysis");
+            return null;
+        }
+
+        try {
+            // Gọi SonarQube Issues API
+            String url = sonarUrl + "/api/issues/search?componentKeys=" + projectKey
+                    + "&types=BUG,CODE_SMELL,VULNERABILITY&pageSize=20";
+
+            HttpHeaders headers = new HttpHeaders();
+            String auth = sonarToken + ":";
+            headers.set("Authorization", "Basic " +
+                    Base64.getEncoder().encodeToString(auth.getBytes()));
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url, HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    String.class
+            );
+
+            if (response.getStatusCode() == HttpStatus.OK) {
+                return response.getBody();
+            }
+        } catch (Exception e) {
+            log.error("SonarQube API call failed: {}", e.getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Phân tích code đơn giản theo quy tắc cơ bản (không cần SonarQube)
+     * Dùng làm fallback khi SonarQube không khả dụng
+     */
+    public List<Map<String, String>> simpleCodeReview(String code, String language) {
+        List<Map<String, String>> issues = new ArrayList<>();
+
+        if (code == null || code.isEmpty()) return issues;
+
+        String[] lines = code.split("\n");
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+            int lineNum = i + 1;
+
+            // Kiểm tra biến tên 1 ký tự (trừ i, j, k, n, x, y trong vòng lặp)
+            if (line.matches(".*\\b(int|String|double|float|long)\\s+[a-hm-wz]\\s*[=;].*")
+                    && !line.contains("for")) {
+                issues.add(Map.of(
+                        "line", String.valueOf(lineNum),
+                        "type", "CODE_SMELL",
+                        "message", "Variable name too short. Use descriptive names."
+                ));
+            }
+
+            // Magic numbers — BUG FIX: bọc qua line rỗng trước khi check regex
+            if (!line.isEmpty() &&
+                    (language.equalsIgnoreCase("CPP") || language.equalsIgnoreCase("JAVA"))) {
+                if (line.matches(".*[^\\d][2-9][0-9]{2,}[^\\d].*")
+                        && !line.startsWith("//") && !line.startsWith("*")) {
+                    issues.add(Map.of(
+                            "line", String.valueOf(lineNum),
+                            "type", "CODE_SMELL",
+                            "message", "Magic number detected. Consider using a named constant."
+                    ));
+                }
+            }
+
+            // Empty catch block — BUG FIX: thiếu ngoặc trong điều kiện gây sai operator precedence
+            if (line.startsWith("catch") && (i + 1) < lines.length
+                    && lines[i + 1].trim().equals("}")) {
+                issues.add(Map.of(
+                        "line", String.valueOf(lineNum),
+                        "type", "BUG",
+                        "message", "Empty catch block. Handle or log the exception."
+                ));
+            }
+        }
+
+        return issues;
+    }
+}

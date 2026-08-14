@@ -1,0 +1,98 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns: "*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
+      routes:
+        # Identity Service routes
+        - id: auth-route
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/auth/**
+        - id: users-route
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - name: JwtAuthFilter
+
+        # Course Service routes
+        - id: courses-route
+          uri: ${COURSE_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/courses/**
+          filters:
+            - name: JwtAuthFilter
+        - id: problems-route
+          uri: ${COURSE_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/problems/**
+          filters:
+            - name: JwtAuthFilter
+        - id: testcases-route
+          uri: ${COURSE_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/test-cases/**
+          filters:
+            - name: JwtAuthFilter
+
+        # Submission Service routes
+        - id: submissions-route
+          uri: ${SUBMISSION_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/submissions/**
+          filters:
+            - name: JwtAuthFilter
+
+        # Notification WebSocket route
+        - id: ws-route
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/ws/**
+          filters:
+            - RewritePath=/api/ws/(?<remaining>.*), /ws/${remaining}
+
+        # Health check routes (không cần auth)
+        - id: health-identity
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/health/identity
+          filters:
+            - RewritePath=/health/identity, /api/health
+        - id: health-course
+          uri: ${COURSE_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/health/course
+          filters:
+            - RewritePath=/health/course, /api/health
+        - id: health-submission
+          uri: ${SUBMISSION_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/health/submission
+          filters:
+            - RewritePath=/health/submission, /api/health
+        - id: health-judge
+          uri: ${JUDGE_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/health/judge
+          filters:
+            - RewritePath=/health/judge, /api/health
+
+jwt:
+  secret: ${JWT_SECRET:codecheckHub_super_secret_key_change_in_production_2024}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway

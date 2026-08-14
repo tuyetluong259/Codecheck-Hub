@@ -1,0 +1,58 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: judge-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/db_judge}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres123}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+
+rabbitmq:
+  queue:
+    judge: judge.queue
+    result: result.queue
+  exchange: codecheckHub.exchange
+  routing-key:
+    judge: judge.routing.key
+    result: result.routing.key
+
+docker:
+  host: ${DOCKER_HOST:unix:///var/run/docker.sock}
+  sandbox:
+    image:
+      cpp: sandbox-cpp:latest
+      java: sandbox-java:latest
+      python: sandbox-python:latest
+    timeout-seconds: 15       # Hard timeout
+    network-disabled: true    # Không cho container dùng mạng
+    memory-limit-bytes: 536870912   # 512MB default max
+
+sonar:
+  url: ${SONAR_URL:http://localhost:9000}
+  token: ${SONAR_TOKEN:}
+
+course:
+  service:
+    url: ${COURSE_SERVICE_URL:http://localhost:8082}
+
+submission:
+  service:
+    url: ${SUBMISSION_SERVICE_URL:http://localhost:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
