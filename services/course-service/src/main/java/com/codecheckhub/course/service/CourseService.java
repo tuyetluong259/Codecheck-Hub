@@ -97,10 +97,13 @@ public class CourseService {
         }
 
         String url = submissionServiceUrl + "/api/internal/submissions/analytics";
-        ResponseEntity<AnalyticsResponse> response = restTemplate.postForEntity(url, problemIds, AnalyticsResponse.class);
-        
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            return response.getBody();
+        try {
+            ResponseEntity<AnalyticsResponse> response = restTemplate.postForEntity(url, problemIds, AnalyticsResponse.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(CourseService.class).warn("Failed to fetch analytics from submission-service: {}", e.getMessage());
         }
         
         return AnalyticsResponse.builder().build();

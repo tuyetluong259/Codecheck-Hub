@@ -35,7 +35,22 @@ public class JudgeConsumer {
     public void processJudgeRequest(JudgeRequest request) {
         log.info("Processing judge request for submission: {}", request.getSubmissionId());
 
-        JudgeResult result = judge(request);
+        JudgeResult result;
+        try {
+            result = judge(request);
+        } catch (Exception e) {
+            log.error("Unhandled error while judging submission {}: ", request.getSubmissionId(), e);
+            result = JudgeResult.builder()
+                    .submissionId(request.getSubmissionId())
+                    .studentId(request.getStudentId())
+                    .overallStatus("SYSTEM_ERROR")
+                    .score(0)
+                    .passedCount(0)
+                    .totalCount(request.getTestCases() != null ? request.getTestCases().size() : 0)
+                    .compileError("System Error: " + e.getMessage())
+                    .results(new ArrayList<>())
+                    .build();
+        }
 
         // Publish kết quả về result queue
         rabbitTemplate.convertAndSend(exchange, resultRoutingKey, result);

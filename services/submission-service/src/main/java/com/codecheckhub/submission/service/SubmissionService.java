@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -81,7 +80,13 @@ public class SubmissionService {
         Submission submission = submissionRepository.findById(result.getSubmissionId())
                 .orElseThrow(() -> new RuntimeException("Submission not found: " + result.getSubmissionId()));
 
-        submission.setStatus(Submission.Status.valueOf(result.getOverallStatus()));
+        Submission.Status overallStatus;
+        try {
+            overallStatus = Submission.Status.valueOf(result.getOverallStatus());
+        } catch (Exception e) {
+            overallStatus = Submission.Status.SYSTEM_ERROR;
+        }
+        submission.setStatus(overallStatus);
         submission.setScore(result.getScore());
         submission.setPassedTestCases(result.getPassedCount());
         submission.setTotalTestCases(result.getTotalCount());

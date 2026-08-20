@@ -77,6 +77,7 @@ public class Submission {
         TIME_LIMIT,     // Quá thời gian
         MEMORY_LIMIT,   // Quá bộ nhớ
         RUNTIME_ERROR,  // Lỗi runtime
-        COMPILE_ERROR   // Lỗi biên dịch
+        COMPILE_ERROR,  // Lỗi biên dịch
+        SYSTEM_ERROR    // Lỗi hệ thống
     }
 }
