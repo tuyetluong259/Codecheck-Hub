@@ -1,15 +1,22 @@
 package com.codecheckhub.judge.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
+import java.io.File;
+import java.util.UUID;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class SonarQubeService {
 
     @Value("${sonar.url:http://localhost:9000}")
@@ -18,7 +25,9 @@ public class SonarQubeService {
     @Value("${sonar.token:}")
     private String sonarToken;
 
+    private final DockerSandboxService dockerSandboxService;
     private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Phân tích code qua SonarQube API và trả về danh sách issues (JSON)
@@ -108,5 +117,67 @@ public class SonarQubeService {
         }
 
         return issues;
+    }
+
+    /**
+     * Chạy quy trình phân tích đầy đủ: Lưu file -> Chạy Scanner -> Gọi API lấy kết quả.
+     */
+    public String executeRealReview(String code, String language, String projectKey) {
+        if (sonarToken == null || sonarToken.isEmpty()) {
+            log.warn("SonarQube token missing. Fallback to simple review.");
+            return serializeFallback(code, language);
+        }
+
+        Path tempDir = null;
+        try {
+            tempDir = Files.createTempDirectory("sonar-" + UUID.randomUUID());
+            String filename = getFilename(language);
+            Files.writeString(tempDir.resolve(filename), code);
+
+            log.info("Starting Sonar scanner for project {}", projectKey);
+            // Sửa host URL để chạy trong mạng docker (sonarUrl nội bộ phải là http://sonarqube:9000)
+            boolean success = dockerSandboxService.runSonarScanner(tempDir, projectKey, sonarUrl, sonarToken);
+            
+            if (success) {
+                log.info("Sonar scanner completed for {}. Fetching results from API.", projectKey);
+                String apiResult = analyzeCode(code, language, projectKey);
+                if (apiResult != null) return apiResult;
+            } else {
+                log.warn("Sonar scanner failed for {}. Fallback to simple review.", projectKey);
+            }
+        } catch (Exception e) {
+            log.error("Error executing real Sonar review: {}", e.getMessage());
+        } finally {
+            if (tempDir != null) {
+                deleteDirectory(tempDir.toFile());
+            }
+        }
+
+        return serializeFallback(code, language);
+    }
+
+    private String serializeFallback(String code, String language) {
+        try {
+            return objectMapper.writeValueAsString(simpleCodeReview(code, language));
+        } catch (Exception e) {
+            return "[]";
+        }
+    }
+
+    private String getFilename(String language) {
+        return switch (language.toUpperCase()) {
+            case "CPP"    -> "solution.cpp";
+            case "JAVA"   -> "Solution.java";
+            case "PYTHON" -> "solution.py";
+            default -> "solution.txt";
+        };
+    }
+
+    private void deleteDirectory(File dir) {
+        if (dir.isDirectory()) {
+            File[] files = dir.listFiles();
+            if (files != null) Arrays.stream(files).forEach(this::deleteDirectory);
+        }
+        dir.delete();
     }
 }

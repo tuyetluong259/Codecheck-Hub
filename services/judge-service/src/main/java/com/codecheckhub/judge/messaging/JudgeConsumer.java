@@ -142,9 +142,10 @@ public class JudgeConsumer {
         // Bước 3: SonarQube code review
         String sonarIssues = null;
         try {
-            List<Map<String, String>> issues = sonarQubeService.simpleCodeReview(
-                    request.getSourceCode(), request.getLanguage());
-            sonarIssues = objectMapper.writeValueAsString(issues);
+            // Dùng submissionId làm projectKey định danh trên SonarQube
+            String projectKey = "submission_" + request.getSubmissionId();
+            sonarIssues = sonarQubeService.executeRealReview(
+                    request.getSourceCode(), request.getLanguage(), projectKey);
         } catch (Exception e) {
             log.warn("Code review failed: {}", e.getMessage());
         }

@@ -274,6 +274,73 @@ public class DockerSandboxService {
         }
     }
 
+    /**
+     * Chạy sonar-scanner-cli trong Docker để phân tích code
+     */
+    public boolean runSonarScanner(Path sourceDir, String projectKey, String sonarUrl, String sonarToken) {
+        String containerId = null;
+        try {
+            // Đảm bảo image có sẵn (tự động pull nếu thiếu, nhưng docker-java createContainerCmd cần có sẵn image. 
+            // Ở đây giả định image đã được pull sẵn hoặc Docker tự xử lý)
+            String image = "sonarsource/sonar-scanner-cli:latest";
+            
+            // Tìm network của compose hiện tại (dựa theo quy tắc đặt tên mặc định)
+            String networkName = "codecheckhub_codecheckHub-net";
+            
+            HostConfig hostConfig = HostConfig.newHostConfig()
+                    .withNetworkMode(networkName) // Kết nối chung mạng với sonarqube
+                    .withBinds(new Bind(sourceDir.toAbsolutePath().toString(),
+                            new Volume("/usr/src"), AccessMode.ro));
+
+            CreateContainerResponse container = dockerClient.createContainerCmd(image)
+                    .withCmd(
+                        "sonar-scanner",
+                        "-Dsonar.projectKey=" + projectKey,
+                        "-Dsonar.sources=.",
+                        "-Dsonar.host.url=" + sonarUrl,
+                        "-Dsonar.login=" + sonarToken,
+                        "-Dsonar.qualitygate.wait=true"
+                    )
+                    .withHostConfig(hostConfig)
+                    .exec();
+
+            containerId = container.getId();
+            dockerClient.startContainerCmd(containerId).exec();
+
+            final String finalContainerId = containerId;
+            CompletableFuture<Integer> exitFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    dockerClient.waitContainerCmd(finalContainerId).start().awaitCompletion();
+                    var state = dockerClient.inspectContainerCmd(finalContainerId).exec().getState();
+                    return state != null && state.getExitCodeLong() != null
+                            ? state.getExitCodeLong().intValue() : -1;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return -1;
+                }
+            });
+
+            int exitCode = exitFuture.get(60, TimeUnit.SECONDS);
+            
+            if (exitCode != 0) {
+                log.warn("Sonar scanner failed with exit code {}. Logs: {}", exitCode, getLogs(containerId, false));
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to run sonar scanner: {}", e.getMessage());
+            return false;
+        } finally {
+            if (containerId != null) {
+                try {
+                    dockerClient.removeContainerCmd(containerId).withForce(true).exec();
+                } catch (Exception e) {
+                    log.warn("Failed to remove sonar container {}: {}", containerId, e.getMessage());
+                }
+            }
+        }
+    }
+
     @Data
     @Builder
     public static class SandboxResult {
