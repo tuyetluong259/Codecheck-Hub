@@ -55,6 +55,12 @@ public class Submission {
     @Column(name = "memory_used")
     private Long memoryUsed;        // (MB)
 
+    @Column(name = "plagiarism_score")
+    private Double plagiarismScore;
+
+    @Column(name = "plagiarism_matched_id")
+    private UUID plagiarismMatchedSubmissionId;
+
     @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<SubmissionResult> results = new ArrayList<>();
@@ -78,6 +84,8 @@ public class Submission {
         MEMORY_LIMIT,   // Quá bộ nhớ
         RUNTIME_ERROR,  // Lỗi runtime
         COMPILE_ERROR,  // Lỗi biên dịch
-        SYSTEM_ERROR    // Lỗi hệ thống
+        SYSTEM_ERROR,   // Lỗi hệ thống
+        PENALIZED,      // Bị phạt (0 điểm do đạo văn/vi phạm)
+        EXCUSED         // Được bỏ qua/miễn phạt
     }
 }

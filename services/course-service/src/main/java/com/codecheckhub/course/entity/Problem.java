@@ -58,6 +58,12 @@ public class Problem {
     @Builder.Default
     private boolean published = false;   // Giảng viên phải publish mới hiện với SV
 
+    @Column(name = "max_complexity")
+    private Integer maxCyclomaticComplexity;
+
+    @Column(name = "naming_convention")
+    private String namingConvention;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

@@ -56,6 +56,41 @@ public class SubmissionController {
         return ResponseEntity.ok(Map.of("status", "ok", "service", "submission-service"));
     }
 
+    @PutMapping("/{id}/penalty")
+    @Operation(summary = "Apply penalty or excuse a submission (Teacher/Admin only)")
+    public ResponseEntity<?> applyPenalty(
+            @PathVariable UUID id,
+            @RequestParam String action,
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role) {
+        
+        if (!"TEACHER".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Only teachers and admins can perform this action"));
+        }
+
+        try {
+            Submission submission = submissionService.applyPenalty(id, action);
+            return ResponseEntity.ok(submission);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/problem/{problemId}/suspicious")
+    @Operation(summary = "Get suspicious submissions (Plagiarism score >= threshold)")
+    public ResponseEntity<?> getSuspiciousSubmissions(
+            @PathVariable UUID problemId,
+            @RequestParam(defaultValue = "70.0") double threshold,
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role) {
+        
+        if (!"TEACHER".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Only teachers and admins can perform this action"));
+        }
+
+        return ResponseEntity.ok(submissionService.getSuspiciousSubmissions(problemId, threshold));
+    }
+
     @Data
     public static class SubmitRequest {
         private UUID problemId;

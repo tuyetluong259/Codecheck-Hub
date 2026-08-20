@@ -33,6 +33,7 @@ public class SubmissionService {
     private final QualityReportRepository qualityReportRepository;
     private final SubmissionProducer producer;
     private final ObjectMapper objectMapper;
+    private final PlagiarismService plagiarismService;
 
     @Transactional
     public Submission submit(UUID problemId, UUID studentId, String code,
@@ -125,8 +126,16 @@ public class SubmissionService {
 
         submissionRepository.save(submission);
 
-        if ("ACCEPTED".equals(result.getOverallStatus()) && result.getSonarIssues() != null && !result.getSonarIssues().isEmpty()) {
+        if ("ACCEPTED".equals(result.getOverallStatus())) {
             try {
+                plagiarismService.checkPlagiarism(submission);
+                submissionRepository.save(submission);
+            } catch (Exception e) {
+                log.error("Plagiarism check failed for submission {}", submission.getId(), e);
+            }
+
+            if (result.getSonarIssues() != null && !result.getSonarIssues().isEmpty()) {
+                try {
                 List<java.util.Map<String, String>> issues = objectMapper.readValue(result.getSonarIssues(), new TypeReference<>() {});
                 int bugs = 0, smells = 0, vulnerabilities = 0;
                 for (java.util.Map<String, String> issue : issues) {
@@ -155,6 +164,26 @@ public class SubmissionService {
 
     public List<Submission> getByProblemAndStudent(UUID problemId, UUID studentId) {
         return submissionRepository.findByProblemIdAndStudentIdOrderBySubmittedAtDesc(problemId, studentId);
+    }
+
+    public List<Submission> getSuspiciousSubmissions(UUID problemId, double threshold) {
+        return submissionRepository.findByProblemIdOrderBySubmittedAtDesc(problemId)
+                .stream()
+                .filter(s -> s.getPlagiarismScore() != null && s.getPlagiarismScore() >= threshold)
+                .collect(Collectors.toList());
+    }
+
+    public Submission applyPenalty(UUID submissionId, String action) {
+        Submission submission = getById(submissionId);
+        if ("PENALIZE".equalsIgnoreCase(action)) {
+            submission.setStatus(Submission.Status.PENALIZED);
+            submission.setScore(0);
+        } else if ("EXCUSE".equalsIgnoreCase(action)) {
+            submission.setStatus(Submission.Status.EXCUSED);
+        } else {
+            throw new IllegalArgumentException("Invalid action. Must be PENALIZE or EXCUSE.");
+        }
+        return submissionRepository.save(submission);
     }
 
     public AnalyticsResponse getAnalytics(List<UUID> problemIds) {

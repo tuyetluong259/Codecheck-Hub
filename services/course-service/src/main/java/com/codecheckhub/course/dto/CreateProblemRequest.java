@@ -18,4 +18,6 @@ public class CreateProblemRequest {
     private int memoryLimitMb = 256;
     private int maxScore = 100;
     private boolean published = true;
+    private Integer maxCyclomaticComplexity;
+    private String namingConvention;
 }

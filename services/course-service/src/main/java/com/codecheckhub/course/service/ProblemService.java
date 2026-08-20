@@ -40,6 +40,8 @@ public class ProblemService {
                 .memoryLimitMb(request.getMemoryLimitMb())
                 .maxScore(request.getMaxScore())
                 .published(request.isPublished())
+                .maxCyclomaticComplexity(request.getMaxCyclomaticComplexity())
+                .namingConvention(request.getNamingConvention())
                 .build();
         return problemRepository.save(problem);
     }
