@@ -50,4 +50,32 @@ public class UserController {
         );
         return ResponseEntity.ok(ApiResponse.success(user, "Profile updated"));
     }
+
+    @PutMapping("/{id}/status")
+    @Operation(summary = "Lock/Unlock user (Admin only)")
+    public ResponseEntity<ApiResponse<UserResponse>> toggleStatus(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role
+    ) {
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Only admins can perform this action"));
+        }
+        UserResponse user = userService.toggleUserStatus(id);
+        return ResponseEntity.ok(ApiResponse.success(user, "User status updated"));
+    }
+
+    @PostMapping(value = "/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Import users from CSV/Excel (Admin only)")
+    public ResponseEntity<ApiResponse<Integer>> importUsers(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role
+    ) {
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Only admins can perform this action"));
+        }
+        int count = userService.importUsers(file);
+        return ResponseEntity.ok(ApiResponse.success(count, "Successfully imported " + count + " users"));
+    }
 }

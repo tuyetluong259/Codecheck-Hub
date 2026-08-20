@@ -13,12 +13,12 @@ jobs:
   build-and-analyze:
     name: Build and Analyze (${{ matrix.service }})
     runs-on: ubuntu-latest
-    
+
     # Dùng matrix strategy để chạy song song (parallel) các microservices
     strategy:
       fail-fast: false
       matrix:
-        service: 
+        service:
           - api-gateway
           - course-service
           - identity-service
@@ -30,13 +30,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Bắt buộc fetch-depth=0 để SonarQube phân tích code chính xác (Blame information)
+          fetch-depth: 0 # Bắt buộc fetch-depth=0 để SonarQube phân tích code chính xác (Blame information)
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: "21"
+          distribution: "temurin"
           cache: maven
 
       - name: Cache SonarCloud packages
@@ -56,6 +56,6 @@ jobs:
           # Lưu ý: Cần đổi "YOUR_ORGANIZATION_KEY" thành organization key thực tế của bạn trên SonarCloud.
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.projectKey=CodeCheckHub_${{ matrix.service }} \
-            -Dsonar.organization=YOUR_ORGANIZATION_KEY \
+            -Dsonar.organization=tuyetluong259 \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN

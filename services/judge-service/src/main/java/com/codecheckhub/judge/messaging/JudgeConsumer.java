@@ -73,8 +73,7 @@ public class JudgeConsumer {
                     request.getLanguage(),
                     firstCase.getInput(),
                     request.getTimeLimitMs(),
-                    request.getMemoryLimitMb()
-            );
+                    request.getMemoryLimitMb());
 
             if (compileTest.getExitCode() != 0 &&
                     compileTest.getStderr().toLowerCase().contains("error:")) {
@@ -95,7 +94,8 @@ public class JudgeConsumer {
         }
 
         // Bước 2: Chạy từng test case
-        // BUG FIX: dùng index biến riêng thay vì indexOf() — indexOf() trả sai index khi input trùng nhau
+        // BUG FIX: dùng index biến riêng thay vì indexOf() — indexOf() trả sai index
+        // khi input trùng nhau
         List<JudgeRequest.TestCaseData> testCases = request.getTestCases();
         for (int idx = 0; idx < testCases.size(); idx++) {
             JudgeRequest.TestCaseData testCase = testCases.get(idx);
@@ -104,8 +104,7 @@ public class JudgeConsumer {
                     request.getLanguage(),
                     testCase.getInput(),
                     request.getTimeLimitMs(),
-                    request.getMemoryLimitMb()
-            );
+                    request.getMemoryLimitMb());
 
             String status = determineStatus(sandboxResult, testCase.getExpectedOutput(),
                     request.getTimeLimitMs());
@@ -114,7 +113,8 @@ public class JudgeConsumer {
                 passedCount++;
                 totalScore += testCase.getPoints();
             } else if (overallStatus.equals("ACCEPTED")) {
-                // BUG FIX: chỉ cập nhật overallStatus nếu hiện tại vẫn là ACCEPTED (lấy lỗi đầu tiên)
+                // BUG FIX: chỉ cập nhật overallStatus nếu hiện tại vẫn là ACCEPTED (lấy lỗi đầu
+                // tiên)
                 overallStatus = status;
             }
 
@@ -130,7 +130,7 @@ public class JudgeConsumer {
                     .actualOutput(!testCase.isHidden() ? sandboxResult.getStdout() : null)
                     .errorMessage(errorMsg)
                     .isHidden(testCase.isHidden())
-                    .orderIndex(idx)   // BUG FIX: dùng idx thay vì indexOf()
+                    .orderIndex(idx) // BUG FIX: dùng idx thay vì indexOf()
                     .build());
         }
 
@@ -163,7 +163,7 @@ public class JudgeConsumer {
     }
 
     private String determineStatus(DockerSandboxService.SandboxResult result,
-                                   String expected, int timeLimitMs) {
+            String expected, int timeLimitMs) {
         if (result.isTimedOut() || result.getTimeMs() > timeLimitMs) {
             return "TIME_LIMIT";
         }

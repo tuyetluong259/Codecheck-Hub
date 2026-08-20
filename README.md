@@ -132,6 +132,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 * **Author:** Lương Thị Ánh Tuyết
 * **University:** Trường Đại học Giao thông Vận tải TP.HCM (UTH)
-* **Mail:** luongtuyet.peter@gmail.com
 
 ```
