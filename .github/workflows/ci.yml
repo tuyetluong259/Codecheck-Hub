@@ -53,9 +53,8 @@ jobs:
         run: |
           cd services/${{ matrix.service }}
           # Lệnh build và đẩy kết quả lên SonarCloud.
-          # Lưu ý: Cần đổi "YOUR_ORGANIZATION_KEY" thành organization key thực tế của bạn trên SonarCloud.
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.projectKey=CodeCheckHub_${{ matrix.service }} \
-            -Dsonar.organization=tuyetluong259 \
+            -Dsonar.organization=${{ secrets.SONAR_ORG_KEY }} \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN
