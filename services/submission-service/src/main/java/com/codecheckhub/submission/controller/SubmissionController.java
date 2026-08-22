@@ -51,6 +51,18 @@ public class SubmissionController {
         return ResponseEntity.ok(submissionService.getByProblemAndStudent(problemId, studentId));
     }
 
+    @GetMapping("/problem/{problemId}/gradebook")
+    @Operation(summary = "Get latest submission for each student for a problem (Gradebook)")
+    public ResponseEntity<List<Submission>> getGradebook(
+            @PathVariable UUID problemId,
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role) {
+        
+        if (!"TEACHER".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(submissionService.getGradebook(problemId));
+    }
+
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         return ResponseEntity.ok(Map.of("status", "ok", "service", "submission-service"));

@@ -166,6 +166,17 @@ public class SubmissionService {
         return submissionRepository.findByProblemIdAndStudentIdOrderBySubmittedAtDesc(problemId, studentId);
     }
 
+    public List<Submission> getGradebook(UUID problemId) {
+        List<Submission> allSubmissions = submissionRepository.findByProblemIdOrderBySubmittedAtDesc(problemId);
+        Map<UUID, Submission> latestPerStudent = new java.util.LinkedHashMap<>();
+        for (Submission s : allSubmissions) {
+            if (!latestPerStudent.containsKey(s.getStudentId())) {
+                latestPerStudent.put(s.getStudentId(), s);
+            }
+        }
+        return new ArrayList<>(latestPerStudent.values());
+    }
+
     public List<Submission> getSuspiciousSubmissions(UUID problemId, double threshold) {
         return submissionRepository.findByProblemIdOrderBySubmittedAtDesc(problemId)
                 .stream()
