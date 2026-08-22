@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, CheckCircle2, ChevronRight } from "lucide-react";
+import api from "../../api/axios";
 
 function DonutChart({ accepted, failed, pending, other }) {
   const total = accepted + failed + pending + other;
@@ -45,12 +46,22 @@ export default function StudentProblems() {
   const [searchTerm, setSearchTerm] = useState("");
   const [difficulty, setDifficulty] = useState("ALL");
 
-  const problems = [
-    { id: 1, title: "Tìm chuỗi con đối xứng dài nhất", difficulty: "Khó", category: "Quy hoạch động", rating: "4.5/5", status: "SOLVED" },
-    { id: 2, title: "Triển khai hàng đợi bằng hai ngăn xếp", difficulty: "Trung bình", category: "Ngăn xếp/Hàng đợi", rating: "4.2/5", status: "ATTEMPTED" },
-    { id: 3, title: "Tính tổng hai số (Two Sum)", difficulty: "Dễ", category: "Mảng", rating: "4.8/5", status: "SOLVED" },
-    { id: 4, title: "Độ sâu lớn nhất của cây nhị phân", difficulty: "Trung bình", category: "Cây nhị phân", rating: "4.1/5", status: "UNSOLVED" },
-  ];
+  const [problems, setProblems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProblems = async () => {
+      try {
+        const res = await api.get('/problems/student');
+        setProblems(res.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProblems();
+  }, []);
 
   return (
     <div className="p-8 space-y-8">
@@ -72,29 +83,24 @@ export default function StudentProblems() {
             </tr>
           </thead>
           <tbody>
-            {problems.map((prob) => (
+            {loading ? <tr><td colSpan="5" className="p-4 text-center">Đang tải...</td></tr> : problems.map((prob) => (
               <tr key={prob.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60">
                 <td className="p-4">
-                  {prob.status === "SOLVED" ? (
-                    <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
-                  ) : prob.status === "ATTEMPTED" ? (
-                    <span className="inline-block w-3 h-3 rounded-full bg-amber-400" />
-                  ) : (
-                    <span className="inline-block w-3 h-3 rounded-full bg-slate-300" />
-                  )}
+                  <span className="inline-block w-3 h-3 rounded-full bg-slate-300" />
                 </td>
                 <td className="p-4 text-slate-800 font-extrabold hover:text-[#1d4ed8] transition">
                   <Link to={`/student/workspace/${prob.id}`}>{prob.title}</Link>
                 </td>
-                <td className="p-4 text-slate-600 font-medium">CN01</td>
-                <td className="p-4 text-slate-600 font-medium">{prob.difficulty}</td>
+                <td className="p-4 text-slate-600 font-medium">Lớp học</td>
+                <td className="p-4 text-slate-600 font-medium">
+                  <span className={`inline-block px-2 py-1 text-xs font-bold rounded ${prob.difficulty === 'HARD' ? 'bg-rose-100 text-rose-700' : prob.difficulty === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {prob.difficulty}
+                  </span>
+                </td>
                 <td className="p-4">
                   <div className="flex items-center gap-3">
-                    <span className={`inline-flex min-w-[62px] justify-center rounded-lg px-2.5 py-1 text-xs font-bold ${prob.status === "SOLVED" ? "bg-emerald-100 text-emerald-700" : prob.status === "ATTEMPTED" ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-600"}`}>
-                      {prob.status === "SOLVED" ? "100%" : prob.status === "ATTEMPTED" ? "50%" : "0%"}
-                    </span>
                     <Link to={`/student/workspace/${prob.id}`} className="inline-flex items-center rounded-xl bg-[#1d4ed8] px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-600/15 hover:bg-[#1e40af]">
-                      {prob.status === "SOLVED" ? "Solve" : prob.status === "ATTEMPTED" ? "Continue" : "Solve"}
+                      Solve
                     </Link>
                   </div>
                 </td>

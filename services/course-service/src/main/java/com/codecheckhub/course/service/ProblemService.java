@@ -5,6 +5,8 @@ import com.codecheckhub.course.entity.Problem;
 import com.codecheckhub.course.entity.Course;
 import com.codecheckhub.course.repository.ProblemRepository;
 import com.codecheckhub.course.repository.CourseRepository;
+import com.codecheckhub.course.repository.ClassMemberRepository;
+import com.codecheckhub.course.entity.ClassMember;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ public class ProblemService {
 
     private final ProblemRepository problemRepository;
     private final CourseRepository courseRepository;
+    private final ClassMemberRepository classMemberRepository;
 
     public List<Problem> getProblemsByCourseId(UUID courseId) {
         return problemRepository.findByCourseId(courseId);
@@ -30,6 +33,17 @@ public class ProblemService {
                 .toList();
         if (courseIds.isEmpty()) return List.of();
         return problemRepository.findByCourseIdIn(courseIds);
+    }
+
+    public List<Problem> getProblemsByStudentId(UUID studentId) {
+        List<UUID> courseIds = classMemberRepository.findByStudentId(studentId)
+                .stream()
+                .map(ClassMember::getClassId)
+                .toList();
+        if (courseIds.isEmpty()) return List.of();
+        return problemRepository.findByCourseIdIn(courseIds).stream()
+                .filter(Problem::isPublished)
+                .toList();
     }
 
     public Problem getProblemById(UUID id) {
