@@ -115,7 +115,7 @@ public class DockerSandboxService {
                             .withFollowStream(true)
                             .withStdOut(false)
                             .withStdErr(false)) {
-                        attachCmd.exec(new com.github.dockerjava.api.async.ResultCallbackTemplate<>() {});
+                        attachCmd.exec(new com.github.dockerjava.api.async.ResultCallback.Adapter<com.github.dockerjava.api.model.Frame>() {});
                     } catch (Exception e) {
                         log.warn("Stdin attach error: {}", e.getMessage());
                     }
@@ -245,7 +245,7 @@ public class DockerSandboxService {
                     .withStdOut(isStdout)
                     .withStdErr(!isStdout)
                     .withFollowStream(false)
-                    .exec(new com.github.dockerjava.api.async.ResultCallbackTemplate<
+                    .exec(new com.github.dockerjava.api.async.ResultCallback.Adapter<
                             com.github.dockerjava.api.model.Frame>() {
                         @Override
                         public void onNext(Frame frame) {

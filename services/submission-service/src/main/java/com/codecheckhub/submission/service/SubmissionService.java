@@ -156,6 +156,7 @@ public class SubmissionService {
             }
         }
     }
+    }
 
     public Submission getById(UUID id) {
         return submissionRepository.findById(id)
