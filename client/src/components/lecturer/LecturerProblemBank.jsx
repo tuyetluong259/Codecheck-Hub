@@ -1,14 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PlusCircle, Copy, Edit, Trash2, Search, ChevronDown } from "lucide-react";
+import api from "../../api/axios";
 
 export default function LecturerProblemBank() {
-  const [problems, setProblems] = useState([
-    { id: 1, problemId: "T001", title: "Two Sum", difficulty: "Easy", tag: "Multiple", status: "GLOBAL" },
-    { id: 2, problemId: "T031", title: "Valid Parentheses", difficulty: "Medium", tag: "Array", status: "PRIVATE" },
-    { id: 3, problemId: "IT112", title: "Duplicate In-Use (1)", difficulty: "Easy", tag: "String", status: "PRIVATE" },
-    { id: 4, problemId: "C501", title: "Two Sum 1 In-Use (2)", difficulty: "Hard", tag: "Tree", status: "GLOBAL" },
-  ]);
+  const [problems, setProblems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProblems = async () => {
+      try {
+        const res = await api.get('/problems/lecturer');
+        setProblems(res.data);
+      } catch (err) {
+        console.error("Failed to fetch problems", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProblems();
+  }, []);
 
   const handleDuplicate = (id) => {
     const prob = problems.find(p => p.id === id);
@@ -59,18 +70,18 @@ export default function LecturerProblemBank() {
           <tbody>
             {problems.map((prob) => (
               <tr key={prob.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
-                <td className="p-4 text-base font-bold text-slate-800">{prob.problemId}</td>
+                <td className="p-4 text-base font-bold text-slate-800">{prob.id.substring(0, 8)}</td>
                 <td className="p-4 text-base font-bold text-slate-800">
                   <div>{prob.title}</div>
-                  <div className="text-xs font-medium text-slate-500">{prob.status === "GLOBAL" ? "Global Bank" : prob.status === "PRIVATE" ? "Private" : "Draft"}</div>
+                  <div className="text-xs font-medium text-slate-500">{prob.published ? "Published" : "Draft"}</div>
                 </td>
                 <td className="p-4">
-                  <span className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-black ${difficultyColors[prob.difficulty]}`}>
+                  <span className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-black ${prob.difficulty === "HARD" ? "bg-red-100 text-red-700" : prob.difficulty === "MEDIUM" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
                     {prob.difficulty}
                   </span>
                 </td>
-                <td className="p-4 text-sm font-bold text-slate-700">{prob.status === "GLOBAL" ? 3 : prob.status === "PRIVATE" ? 2 : 5}</td>
-                <td className="p-4 text-sm font-medium text-slate-600">{prob.tag}</td>
+                <td className="p-4 text-sm font-bold text-slate-700">{prob.timeLimitMs}ms / {prob.memoryLimitMb}MB</td>
+                <td className="p-4 text-sm font-medium text-slate-600">{prob.courseId ? "Assigned" : "Global"}</td>
                 <td className="p-4">
                   <div className="flex items-center gap-2">
                     <button className="rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-300">Delete</button>

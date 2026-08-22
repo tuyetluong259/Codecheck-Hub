@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Save, Clipboard, Settings2, ShieldCheck, ChevronRight, ChevronLeft, Plus, Trash2 } from "lucide-react";
+import api from "../../api/axios";
 
 function Toggle({ enabled, onChange }) {
   return (
@@ -35,15 +36,55 @@ export default function CreateProblem({ isEdit = false }) {
   const [qualityGateEnabled, setQualityGateEnabled] = useState(true);
   const [duplicationPercent, setDuplicationPercent] = useState("10%");
 
-  const handleSave = () => navigate("/lecturer/problems");
+  const [courseId, setCourseId] = useState("");
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoadingCourses(true);
+        const res = await api.get('/courses/lecturer');
+        setCourses(res.data);
+        if (res.data.length > 0) setCourseId(res.data[0].id);
+      } catch (err) {
+        console.error("Failed to fetch courses", err);
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  const handleSave = async () => {
+    if (!title || !courseId) return alert("Vui lòng nhập tiêu đề và chọn lớp học");
+    try {
+      const payload = {
+        title,
+        description,
+        difficulty,
+        courseId,
+        timeLimitMs: parseInt(cpuLimit),
+        memoryLimitMb: parseInt(ramLimit),
+        maxCyclomaticComplexity: complexityEnabled ? parseInt(complexity) : null,
+        namingConvention: namingEnabled ? varNaming : null,
+        published: true
+      };
+      await api.post('/problems', payload);
+      navigate("/lecturer/problems");
+    } catch (err) {
+      console.error(err);
+      alert("Tạo bài tập thất bại!");
+    }
+  };
 
   return (
     <div className="p-8 space-y-8">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-4xl font-black tracking-tight text-slate-800">{isEdit ? "Edit Problem: Valid Parentheses" : "Create New Problem"}</h1>
         <div className="flex items-center gap-3">
-          <button className="rounded-xl border border-[#7db5ff] bg-white px-5 py-2.5 text-sm font-bold text-[#1d4ed8] hover:bg-[#eef5ff]">Cancel</button>
-          <button className="rounded-xl bg-[#1d4ed8] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-600/15 hover:bg-[#1e40af]">Publish</button>
+          <button onClick={() => navigate("/lecturer/problems")} className="rounded-xl border border-[#7db5ff] bg-white px-5 py-2.5 text-sm font-bold text-[#1d4ed8] hover:bg-[#eef5ff]">Cancel</button>
+          <button onClick={handleSave} className="rounded-xl bg-[#1d4ed8] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-600/15 hover:bg-[#1e40af]">Publish</button>
         </div>
       </div>
 
@@ -74,9 +115,20 @@ export default function CreateProblem({ isEdit = false }) {
             <div className="space-y-5">
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Class (Lớp học)</label>
+                  <select value={courseId} onChange={e => setCourseId(e.target.value)} className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none">
+                    {loadingCourses ? <option>Đang tải...</option> : courses.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">Problem Title</label>
                   <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter problem title" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">Difficulty</label>
                   <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none">
@@ -85,11 +137,10 @@ export default function CreateProblem({ isEdit = false }) {
                     <option value="HARD">Hard</option>
                   </select>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Algorithm</label>
-                <input placeholder="e.g. Stack, HashMap" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Algorithm (Tag)</label>
+                  <input placeholder="e.g. Stack, HashMap" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
+                </div>
               </div>
 
               <div className="space-y-2">

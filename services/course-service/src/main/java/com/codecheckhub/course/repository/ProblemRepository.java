@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface ProblemRepository extends JpaRepository<Problem, UUID> {
     List<Problem> findByCourseId(UUID courseId);
+    List<Problem> findByCourseIdIn(List<UUID> courseIds);
 }

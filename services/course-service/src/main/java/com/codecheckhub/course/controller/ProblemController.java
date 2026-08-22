@@ -28,6 +28,12 @@ public class ProblemController {
         return ResponseEntity.ok(problemService.getProblemsByCourseId(courseId));
     }
 
+    @GetMapping("/lecturer")
+    @Operation(summary = "Get all problems for current lecturer")
+    public ResponseEntity<List<Problem>> getLecturerProblems(@RequestHeader("X-User-Id") String teacherId) {
+        return ResponseEntity.ok(problemService.getProblemsByTeacherId(UUID.fromString(teacherId)));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get problem by ID")
     public ResponseEntity<Problem> getProblemById(@PathVariable UUID id) {

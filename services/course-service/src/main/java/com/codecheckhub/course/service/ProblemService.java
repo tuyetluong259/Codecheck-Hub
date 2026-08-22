@@ -2,7 +2,9 @@ package com.codecheckhub.course.service;
 
 import com.codecheckhub.course.dto.CreateProblemRequest;
 import com.codecheckhub.course.entity.Problem;
+import com.codecheckhub.course.entity.Course;
 import com.codecheckhub.course.repository.ProblemRepository;
+import com.codecheckhub.course.repository.CourseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +17,19 @@ import java.util.UUID;
 public class ProblemService {
 
     private final ProblemRepository problemRepository;
+    private final CourseRepository courseRepository;
 
     public List<Problem> getProblemsByCourseId(UUID courseId) {
         return problemRepository.findByCourseId(courseId);
+    }
+
+    public List<Problem> getProblemsByTeacherId(UUID teacherId) {
+        List<UUID> courseIds = courseRepository.findByTeacherId(teacherId)
+                .stream()
+                .map(Course::getId)
+                .toList();
+        if (courseIds.isEmpty()) return List.of();
+        return problemRepository.findByCourseIdIn(courseIds);
     }
 
     public Problem getProblemById(UUID id) {
