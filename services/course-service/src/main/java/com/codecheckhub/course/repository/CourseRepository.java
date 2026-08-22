@@ -7,7 +7,10 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 import java.util.UUID;
 
+import java.util.List;
+
 @Repository
 public interface CourseRepository extends JpaRepository<Course, UUID> {
     Optional<Course> findByCode(String code);
+    List<Course> findByTeacherId(UUID teacherId);
 }

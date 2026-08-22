@@ -1,38 +1,26 @@
 {
-  "name": "codecheckHub-client",
+  "name": "codecheck-hub-frontend",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-router-dom": "^7.0.0",
-    "@reduxjs/toolkit": "^2.3.0",
-    "react-redux": "^9.1.0",
-    "axios": "^1.7.0",
-    "@monaco-editor/react": "^4.6.0",
-    "@stomp/stompjs": "^7.0.0",
-    "sockjs-client": "^1.6.1",
-    "react-toastify": "^10.0.0",
-    "react-markdown": "^9.0.0",
-    "remark-gfm": "^4.0.0"
+    "@monaco-editor/react": "^4.7.0",
+    "axios": "^1.19.0",
+    "lucide-react": "^1.33.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@types/sockjs-client": "^1.5.4",
-    "@vitejs/plugin-react": "^4.3.0",
-    "typescript": "^5.6.0",
-    "vite": "^6.0.0",
-    "tailwindcss": "^3.4.0",
-    "autoprefixer": "^10.4.0",
-    "postcss": "^8.4.0",
-    "eslint": "^9.0.0"
+    "@vitejs/plugin-react": "^6.0.5",
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "vite": "^8.2.1"
   }
 }

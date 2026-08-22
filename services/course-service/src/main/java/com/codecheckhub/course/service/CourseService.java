@@ -35,6 +35,18 @@ public class CourseService {
         return courseRepository.findAll();
     }
 
+    public List<Course> getCoursesByTeacherId(UUID teacherId) {
+        return courseRepository.findByTeacherId(teacherId);
+    }
+
+    public List<Course> getCoursesByStudentId(UUID studentId) {
+        List<ClassMember> memberships = classMemberRepository.findByStudentId(studentId);
+        return memberships.stream()
+                .map(m -> courseRepository.findById(m.getClassId()).orElse(null))
+                .filter(c -> c != null)
+                .collect(Collectors.toList());
+    }
+
     public Course getCourseById(UUID id) {
         return courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found"));

@@ -2,99 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-card: #1e293b;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --border: #334155;
-    --accent: #6366f1;
-    --accent-hover: #4f46e5;
-    --success: #10b981;
-    --error: #ef4444;
-    --warning: #f59e0b;
-  }
-
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  body {
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: 'Inter', system-ui, sans-serif;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #475569;
-    border-radius: 3px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
-  }
+:root {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  color: #0f172a;
+  background: #edf3f8;
 }
 
-@layer components {
-  .btn-primary {
-    @apply bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg
-           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-           active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-           focus:ring-offset-slate-900;
-  }
+html {
+  background: #edf3f8;
+}
 
-  .btn-secondary {
-    @apply bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium px-4 py-2 rounded-lg
-           transition-all duration-200 active:scale-95;
-  }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #edf3f8;
+  color: #0f172a;
+}
 
-  .btn-ghost {
-    @apply text-slate-400 hover:text-slate-200 hover:bg-slate-800 px-3 py-2 rounded-lg
-           transition-all duration-200;
-  }
+* {
+  box-sizing: border-box;
+}
 
-  .card {
-    @apply bg-slate-800 border border-slate-700 rounded-xl p-6;
-  }
+::selection {
+  background: rgba(96, 165, 250, 0.25);
+}
 
-  .input {
-    @apply w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-slate-100
-           placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1
-           focus:ring-indigo-500 transition-colors;
-  }
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
-  .badge-accepted {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-           bg-emerald-900/50 text-emerald-400 border border-emerald-800;
-  }
-
-  .badge-wrong {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-           bg-red-900/50 text-red-400 border border-red-800;
-  }
-
-  .badge-pending {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-           bg-yellow-900/50 text-yellow-400 border border-yellow-800;
-  }
-
-  .badge-tle {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-           bg-orange-900/50 text-orange-400 border border-orange-800;
-  }
+.animate-spin-slow {
+  animation: spin-slow 15s linear infinite;
 }

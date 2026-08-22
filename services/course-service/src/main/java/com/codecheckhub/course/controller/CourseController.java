@@ -30,6 +30,18 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getAllCourses());
     }
 
+    @GetMapping("/lecturer")
+    @Operation(summary = "Get courses for current lecturer")
+    public ResponseEntity<List<Course>> getLecturerCourses(@RequestHeader("X-User-Id") String teacherId) {
+        return ResponseEntity.ok(courseService.getCoursesByTeacherId(UUID.fromString(teacherId)));
+    }
+
+    @GetMapping("/student")
+    @Operation(summary = "Get courses for current student")
+    public ResponseEntity<List<Course>> getStudentCourses(@RequestHeader("X-User-Id") String studentId) {
+        return ResponseEntity.ok(courseService.getCoursesByStudentId(UUID.fromString(studentId)));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get course by ID")
     public ResponseEntity<Course> getCourseById(@PathVariable UUID id) {
