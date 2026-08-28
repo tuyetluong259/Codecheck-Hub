@@ -34,11 +34,11 @@ import AdminSystemAuditLogs from './components/admin/AdminSystemAuditLogs';
 import AdminSystemSettings from './components/admin/AdminSystemSettings';
 
 const Layout = ({ children }) => (
-  <div className="flex min-h-screen flex-col bg-[#dfeef7] text-slate-700">
+  <div className="flex h-screen flex-col bg-[#dfeef7] text-slate-700">
     <Navbar />
     <div className="flex flex-1 overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-auto bg-[#dfeef7]">{children}</main>
+      <main className="flex-1 overflow-y-auto bg-[#dfeef7]">{children}</main>
     </div>
   </div>
 );

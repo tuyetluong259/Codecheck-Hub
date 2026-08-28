@@ -1,11 +1,11 @@
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Mail, Lock, LogIn, Code2, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, LogIn, Code2, Eye, EyeOff } from 'lucide-react';
 import api from '../../api/axios';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post('/auth/login', { username, password });
       // Backend bọc response trong ApiResponse nên data thực nằm ở response.data.data
       const authData = response.data.data;
       login(authData.user, authData.accessToken);
@@ -66,15 +66,15 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Email</label>
+                <label className="block text-sm font-medium text-slate-700">Tên đăng nhập</label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                  <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                   <input
-                    type="email"
+                    type="text"
                     required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="john.doe@gmail.com"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder="nguyenvana"
                     className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-base text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#85c0ff]"
                   />
                 </div>

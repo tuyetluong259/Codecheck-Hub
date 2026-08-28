@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, CheckCircle2, ChevronRight } from "lucide-react";
+import { Search, ChevronRight } from "lucide-react";
 import api from "../../api/axios";
 
 function DonutChart({ accepted, failed, pending, other }) {

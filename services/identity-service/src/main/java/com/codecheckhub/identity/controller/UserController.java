@@ -37,6 +37,52 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(user, "Success"));
     }
 
+    @GetMapping
+    @Operation(summary = "Get all users (Admin only)")
+    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getAllUsers(
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role
+    ) {
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Only admins can perform this action"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(userService.getAllUsers(), "Success"));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create user (Admin only)")
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role,
+            @RequestBody Map<String, String> body
+    ) {
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Only admins can perform this action"));
+        }
+        UserResponse user = userService.createUser(
+                body.get("username"),
+                body.get("email"),
+                body.get("fullName"),
+                body.get("role"),
+                body.get("password")
+        );
+        return ResponseEntity.ok(ApiResponse.success(user, "User created"));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete user (Admin only)")
+    public ResponseEntity<ApiResponse<Void>> deleteUser(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role
+    ) {
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Only admins can perform this action"));
+        }
+        userService.deleteUser(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "User deleted"));
+    }
+
     @PutMapping("/me")
     @Operation(summary = "Update current user profile")
     public ResponseEntity<ApiResponse<UserResponse>> updateMe(

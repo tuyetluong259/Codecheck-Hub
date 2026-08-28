@@ -8,7 +8,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 flex h-20 items-center justify-between border-b border-[#d5ebff] bg-[#1d9df2] px-4 text-white shadow-sm md:px-6">
       <div className="flex items-center gap-4">
-        <button className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/30 bg-white/10 text-white hover:bg-white/15">
+        <button className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/30 bg-white/10 text-white transition hover:bg-blue-700 hover:border-blue-700">
           <Menu className="h-5 w-5" />
         </button>
 
@@ -33,18 +33,18 @@ export default function Navbar() {
           />
         </div>
 
-        <button className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/15">
+        <button className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white transition hover:bg-blue-700 hover:border-blue-700">
           <Bell className="h-5 w-5" />
           <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-slate-900 ring-2 ring-[#1d9df2]" />
         </button>
 
-        <button className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/15" title="Profile">
+        <button className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white transition hover:bg-blue-700 hover:border-blue-700" title="Profile">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 font-bold text-[#1d9df2]">
             {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
           </div>
         </button>
 
-        <button onClick={logout} className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/15" title="Logout">
+        <button onClick={logout} className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white transition hover:bg-blue-700 hover:border-blue-700" title="Logout">
           <LogOut className="h-5 w-5" />
         </button>
       </div>

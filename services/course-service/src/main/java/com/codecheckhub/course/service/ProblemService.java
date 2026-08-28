@@ -46,6 +46,10 @@ public class ProblemService {
                 .toList();
     }
 
+    public List<Problem> getAllProblems() {
+        return problemRepository.findAll();
+    }
+
     public Problem getProblemById(UUID id) {
         return problemRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Problem not found"));

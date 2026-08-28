@@ -29,6 +29,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
 
     public UserResponse getById(UUID id) {
         User user = userRepository.findById(id)
@@ -56,6 +57,44 @@ public class UserService {
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "User not found"));
         user.setActive(!user.isActive());
         userRepository.save(user);
+        auditLogService.log("INFO", "Toggled status of user " + user.getUsername() + " to " + (user.isActive() ? "Active" : "Banned"), "Admin", null);
+        return UserResponse.from(user);
+    }
+
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(UserResponse::from)
+                .toList();
+    }
+
+    public void deleteUser(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "User not found"));
+        userRepository.deleteById(id);
+        auditLogService.log("WARNING", "Deleted user " + user.getUsername(), "Admin", null);
+    }
+
+    public UserResponse createUser(String username, String email, String fullName, String roleStr, String password) {
+        if (userRepository.existsByUsername(username) || userRepository.existsByEmail(email)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Username or email already exists");
+        }
+        User.Role role = User.Role.STUDENT;
+        try {
+            if (roleStr != null) role = User.Role.valueOf(roleStr);
+        } catch (IllegalArgumentException e) {
+            // keep default
+        }
+        User user = User.builder()
+                .username(username)
+                .email(email)
+                .fullName(fullName)
+                .password(passwordEncoder.encode(password))
+                .studentId(username)
+                .role(role)
+                .active(true)
+                .build();
+        userRepository.save(user);
+        auditLogService.log("INFO", "Created new user " + user.getUsername() + " with role " + user.getRole(), "Admin", null);
         return UserResponse.from(user);
     }
 

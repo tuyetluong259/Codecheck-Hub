@@ -34,6 +34,15 @@ public class ProblemController {
         return ResponseEntity.ok(problemService.getProblemsByTeacherId(UUID.fromString(teacherId)));
     }
 
+    @GetMapping("/all")
+    @Operation(summary = "Get all problems (Admin only)")
+    public ResponseEntity<List<Problem>> getAllProblems(@RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role) {
+        if (!"ADMIN".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can perform this action");
+        }
+        return ResponseEntity.ok(problemService.getAllProblems());
+    }
+
     @GetMapping("/student")
     @Operation(summary = "Get all problems for current student")
     public ResponseEntity<List<Problem>> getStudentProblems(@RequestHeader("X-User-Id") String studentId) {

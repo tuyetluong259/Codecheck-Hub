@@ -25,7 +25,7 @@ export default function Workspace() {
     if (id) fetchProblem();
   }, [id]);
 
-  const { sendMessage } = useWebSocket("/submission-results", (message) => {
+  useWebSocket("/submission-results", (message) => {
     setLoading(false);
     if (message.status === "COMPLETED") {
       setConsoleOutput(`[SUCCESS] Pass ${message.passedCases}/${message.totalCases} Test cases!\nRAM tiêu thụ: ${message.memoryConsumed}MB | Thời gian thực thi: ${message.executionTime}ms\nĐiểm đánh giá Clean Code SonarQube: ${message.sonarScore}/100.`);
