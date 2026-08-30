@@ -4,6 +4,7 @@ import com.codecheckhub.identity.dto.response.UserResponse;
 import com.codecheckhub.identity.entity.User;
 import com.codecheckhub.identity.exception.AppException;
 import com.codecheckhub.identity.repository.UserRepository;
+import com.codecheckhub.identity.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -28,6 +29,7 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
 
@@ -67,9 +69,11 @@ public class UserService {
                 .toList();
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void deleteUser(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "User not found"));
+        refreshTokenRepository.deleteAllByUser(user);
         userRepository.deleteById(id);
         auditLogService.log("WARNING", "Deleted user " + user.getUsername(), "Admin", null);
     }
@@ -80,8 +84,11 @@ public class UserService {
         }
         User.Role role = User.Role.STUDENT;
         try {
-            if (roleStr != null) role = User.Role.valueOf(roleStr);
+            if (roleStr != null && !roleStr.isBlank()) {
+                role = User.Role.valueOf(roleStr.trim().toUpperCase());
+            }
         } catch (IllegalArgumentException e) {
+            System.err.println("Invalid role received: " + roleStr + ", defaulting to STUDENT");
             // keep default
         }
         User user = User.builder()

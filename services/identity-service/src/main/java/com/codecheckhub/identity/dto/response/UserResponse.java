@@ -21,6 +21,7 @@ public class UserResponse {
     private User.Role role;
     private String studentId;
     private String avatarUrl;
+    private boolean active;
     private LocalDateTime createdAt;
 
     public static UserResponse from(User user) {
@@ -32,6 +33,7 @@ public class UserResponse {
                 .role(user.getRole())
                 .studentId(user.getStudentId())
                 .avatarUrl(user.getAvatarUrl())
+                .active(user.isActive())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

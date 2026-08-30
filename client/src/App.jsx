@@ -54,7 +54,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 const DashboardRedirect = () => {
   const { user } = useContext(AuthContext);
   if (user?.role === 'ADMIN') return <Navigate to="/admin/users" replace />;
-  return user?.role === 'LECTURER' ? <LecturerDashboard /> : <StudentDashboard />;
+  return user?.role === 'TEACHER' ? <LecturerDashboard /> : <StudentDashboard />;
 };
 
 function App() {
@@ -75,14 +75,14 @@ function App() {
           <Route path="/student/workspace/:id" element={<ProtectedRoute allowedRoles={['STUDENT']}><Workspace /></ProtectedRoute>} />
           <Route path="/student/submissions" element={<ProtectedRoute allowedRoles={['STUDENT']}><SubmissionHistory /></ProtectedRoute>} />
 
-          <Route path="/lecturer/classes" element={<ProtectedRoute allowedRoles={['LECTURER']}><LecturerClassManagement /></ProtectedRoute>} />
-          <Route path="/lecturer/classes/:id" element={<ProtectedRoute allowedRoles={['LECTURER']}><LecturerClassDetail /></ProtectedRoute>} />
-          <Route path="/lecturer/problems" element={<ProtectedRoute allowedRoles={['LECTURER']}><LecturerProblemBank /></ProtectedRoute>} />
-          <Route path="/lecturer/problems/create" element={<ProtectedRoute allowedRoles={['LECTURER']}><CreateProblem /></ProtectedRoute>} />
-          <Route path="/lecturer/problems/edit/:id" element={<ProtectedRoute allowedRoles={['LECTURER']}><CreateProblem isEdit={true} /></ProtectedRoute>} />
-          <Route path="/lecturer/grades" element={<ProtectedRoute allowedRoles={['LECTURER']}><GradingAndAnalytics /></ProtectedRoute>} />
-          <Route path="/lecturer/plagiarism/compare" element={<ProtectedRoute allowedRoles={['LECTURER']}><CodeComparison /></ProtectedRoute>} />
-          <Route path="/lecturer/notifications" element={<ProtectedRoute allowedRoles={['LECTURER']}><LecturerNotifications /></ProtectedRoute>} />
+          <Route path="/lecturer/classes" element={<ProtectedRoute allowedRoles={['TEACHER']}><LecturerClassManagement /></ProtectedRoute>} />
+          <Route path="/lecturer/classes/:id" element={<ProtectedRoute allowedRoles={['TEACHER']}><LecturerClassDetail /></ProtectedRoute>} />
+          <Route path="/lecturer/problems" element={<ProtectedRoute allowedRoles={['TEACHER']}><LecturerProblemBank /></ProtectedRoute>} />
+          <Route path="/lecturer/problems/create" element={<ProtectedRoute allowedRoles={['TEACHER']}><CreateProblem /></ProtectedRoute>} />
+          <Route path="/lecturer/problems/edit/:id" element={<ProtectedRoute allowedRoles={['TEACHER']}><CreateProblem isEdit={true} /></ProtectedRoute>} />
+          <Route path="/lecturer/grades" element={<ProtectedRoute allowedRoles={['TEACHER']}><GradingAndAnalytics /></ProtectedRoute>} />
+          <Route path="/lecturer/plagiarism/compare" element={<ProtectedRoute allowedRoles={['TEACHER']}><CodeComparison /></ProtectedRoute>} />
+          <Route path="/lecturer/notifications" element={<ProtectedRoute allowedRoles={['TEACHER']}><LecturerNotifications /></ProtectedRoute>} />
 
           <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminUserManagement /></ProtectedRoute>} />
           <Route path="/admin/infrastructure" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminSystemInfrastructure /></ProtectedRoute>} />

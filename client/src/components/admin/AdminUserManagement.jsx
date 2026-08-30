@@ -123,7 +123,7 @@ export default function AdminUserManagement() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <button onClick={() => {setRoleFilter("ALL"); setStatusFilter("ALL");}} className={`rounded-2xl border ${roleFilter==="ALL" ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"} px-4 py-4 text-left text-xl font-bold text-slate-700 shadow-sm transition hover:bg-slate-50`}>Tổng số ({users.length})</button>
-        <button onClick={() => setRoleFilter("LECTURER")} className={`rounded-2xl border ${roleFilter==="LECTURER" ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"} px-4 py-4 text-left text-xl font-bold text-slate-700 shadow-sm transition hover:bg-slate-50`}>Giảng viên ({users.filter(u=>u.role==="LECTURER").length})</button>
+        <button onClick={() => setRoleFilter("TEACHER")} className={`rounded-2xl border ${roleFilter==="TEACHER" ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"} px-4 py-4 text-left text-xl font-bold text-slate-700 shadow-sm transition hover:bg-slate-50`}>Giảng viên ({users.filter(u=>u.role==="TEACHER").length})</button>
         <button onClick={() => setRoleFilter("STUDENT")} className={`rounded-2xl border ${roleFilter==="STUDENT" ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"} px-4 py-4 text-left text-xl font-bold text-slate-700 shadow-sm transition hover:bg-slate-50`}>Sinh viên ({users.filter(u=>u.role==="STUDENT").length})</button>
         <button onClick={() => setRoleFilter("ADMIN")} className={`rounded-2xl border ${roleFilter==="ADMIN" ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"} px-4 py-4 text-left text-xl font-bold text-slate-700 shadow-sm transition hover:bg-slate-50`}>Quản trị viên ({users.filter(u=>u.role==="ADMIN").length})</button>
       </div>
@@ -150,7 +150,7 @@ export default function AdminUserManagement() {
           <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 focus:outline-none">
             <option value="ALL">Tất cả Role</option>
             <option value="STUDENT">Sinh viên</option>
-            <option value="LECTURER">Giảng viên</option>
+            <option value="TEACHER">Giảng viên</option>
             <option value="ADMIN">Admin</option>
           </select>
           
@@ -235,7 +235,7 @@ export default function AdminUserManagement() {
                 <label className="block text-sm font-bold text-slate-700 mb-1">Vai trò</label>
                 <select value={newUser.role} onChange={e=>setNewUser({...newUser, role: e.target.value})} className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition">
                   <option value="STUDENT">Sinh viên</option>
-                  <option value="LECTURER">Giảng viên</option>
+                  <option value="TEACHER">Giảng viên</option>
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>

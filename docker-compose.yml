@@ -100,6 +100,7 @@ services:
     container_name: identity-service
     env_file: .env
     environment:
+      JAVA_TOOL_OPTIONS: -Xmx256m -Xms256m
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_identity
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres123
@@ -130,6 +131,7 @@ services:
     container_name: course-service
     env_file: .env
     environment:
+      JAVA_TOOL_OPTIONS: -Xmx256m -Xms256m
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_course
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres123
@@ -154,6 +156,7 @@ services:
     container_name: submission-service
     env_file: .env
     environment:
+      JAVA_TOOL_OPTIONS: -Xmx256m -Xms256m
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_submission
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres123
@@ -185,6 +188,7 @@ services:
     container_name: judge-service
     env_file: .env
     environment:
+      JAVA_TOOL_OPTIONS: -Xmx256m -Xms256m
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_judge
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres123
@@ -220,6 +224,7 @@ services:
     container_name: notification-service
     env_file: .env
     environment:
+      JAVA_TOOL_OPTIONS: -Xmx256m -Xms256m
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_notification
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres123
@@ -247,6 +252,7 @@ services:
     container_name: api-gateway
     env_file: .env
     environment:
+      JAVA_TOOL_OPTIONS: -Xmx256m -Xms256m
       IDENTITY_SERVICE_URL: http://identity-service:8081
       COURSE_SERVICE_URL: http://course-service:8082
       SUBMISSION_SERVICE_URL: http://submission-service:8083

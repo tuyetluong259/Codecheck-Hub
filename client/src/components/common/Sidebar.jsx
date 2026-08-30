@@ -21,7 +21,7 @@ export default function Sidebar() {
       ];
     }
 
-    if (user?.role === "LECTURER") {
+    if (user?.role === "TEACHER") {
       return [
         { path: "/", label: "Home", icon: Home },
         { path: "/lecturer/classes", label: "Class Management", icon: BookOpen },

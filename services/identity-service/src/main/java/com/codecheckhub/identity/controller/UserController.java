@@ -39,10 +39,8 @@ public class UserController {
 
     @GetMapping
     @Operation(summary = "Get all users (Admin only)")
-    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getAllUsers(
-            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role
-    ) {
-        if (!"ADMIN".equals(role)) {
+    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getAllUsers(Authentication authentication) {
+        if (!isAdmin(authentication)) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error("Only admins can perform this action"));
         }
@@ -52,10 +50,10 @@ public class UserController {
     @PostMapping
     @Operation(summary = "Create user (Admin only)")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
-            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role,
-            @RequestBody Map<String, String> body
+            @RequestBody Map<String, String> body,
+            Authentication authentication
     ) {
-        if (!"ADMIN".equals(role)) {
+        if (!isAdmin(authentication)) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error("Only admins can perform this action"));
         }
@@ -73,9 +71,9 @@ public class UserController {
     @Operation(summary = "Delete user (Admin only)")
     public ResponseEntity<ApiResponse<Void>> deleteUser(
             @PathVariable UUID id,
-            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role
+            Authentication authentication
     ) {
-        if (!"ADMIN".equals(role)) {
+        if (!isAdmin(authentication)) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error("Only admins can perform this action"));
         }
@@ -101,9 +99,9 @@ public class UserController {
     @Operation(summary = "Lock/Unlock user (Admin only)")
     public ResponseEntity<ApiResponse<UserResponse>> toggleStatus(
             @PathVariable UUID id,
-            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role
+            Authentication authentication
     ) {
-        if (!"ADMIN".equals(role)) {
+        if (!isAdmin(authentication)) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error("Only admins can perform this action"));
         }
@@ -115,13 +113,19 @@ public class UserController {
     @Operation(summary = "Import users from CSV/Excel (Admin only)")
     public ResponseEntity<ApiResponse<Integer>> importUsers(
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
-            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role
+            Authentication authentication
     ) {
-        if (!"ADMIN".equals(role)) {
+        if (!isAdmin(authentication)) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error("Only admins can perform this action"));
         }
         int count = userService.importUsers(file);
         return ResponseEntity.ok(ApiResponse.success(count, "Successfully imported " + count + " users"));
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        if (authentication == null || authentication.getAuthorities() == null) return false;
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));
     }
 }
