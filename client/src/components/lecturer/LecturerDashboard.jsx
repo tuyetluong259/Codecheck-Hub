@@ -1,20 +1,45 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Users, GraduationCap, FolderGit, ShieldAlert } from "lucide-react";
+import api from "../../api/axios";
 
 export default function LecturerDashboard() {
+  const [dashboardStats, setDashboardStats] = useState({
+    totalStudents: 0,
+    totalCourses: 0,
+    totalProblems: 0,
+    recentPlagiarismAlerts: 0
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/courses/lecturer/dashboard-stats');
+        setDashboardStats(res.data);
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
   const stats = [
-    { title: "Tổng học viên quản lý", value: "185 sinh viên", icon: Users, color: "text-indigo-600 bg-indigo-50 border border-indigo-100" },
-    { title: "Số lớp học phần", value: "4 lớp", icon: GraduationCap, color: "text-emerald-600 bg-emerald-50 border border-emerald-100" },
-    { title: "Bài tập trong kho riêng", value: "32 bài", icon: FolderGit, color: "text-amber-600 bg-amber-50 border border-amber-100" },
-    { title: "Cảnh báo đạo văn mới nhất", value: "2 sự kiện", icon: ShieldAlert, color: "text-rose-600 bg-rose-50 border border-rose-100" }
+    { title: "Tổng học viên quản lý", value: `${dashboardStats.totalStudents} sinh viên`, icon: Users, color: "text-indigo-600 bg-indigo-50 border border-indigo-100" },
+    { title: "Số lớp học phần", value: `${dashboardStats.totalCourses} lớp`, icon: GraduationCap, color: "text-emerald-600 bg-emerald-50 border border-emerald-100" },
+    { title: "Bài tập trong kho riêng", value: `${dashboardStats.totalProblems} bài`, icon: FolderGit, color: "text-amber-600 bg-amber-50 border border-amber-100" },
+    { title: "Cảnh báo đạo văn mới nhất", value: `${dashboardStats.recentPlagiarismAlerts} sự kiện`, icon: ShieldAlert, color: "text-rose-600 bg-rose-50 border border-rose-100" }
   ];
 
   const recentActivities = [
-    { name: "Nguyễn Văn Hùng", cls: "Cấu trúc dữ liệu - Nhóm 2", msg: "vừa đạt điểm tuyệt đối 100/100", time: "5 phút trước" },
-    { name: "Phạm Minh Đức & Lê Anh Tuấn", cls: "OOP Java - Nhóm 1", msg: "bị phát hiện trùng lặp mã nguồn 91%", time: "30 phút trước" },
-    { name: "Lương Thị Ánh Tuyết", cls: "Cấu trúc dữ liệu - Nhóm 2", msg: "gửi đơn xin gia hạn hạn nộp bài AVL Tree", time: "1 giờ trước" }
+    // Currently still mocked since we don't have a real activity stream API
+    { name: "Hệ thống", cls: "Cập nhật", msg: "Tính năng Dashboard đã tích hợp Data thực!", time: "vừa xong" },
   ];
+
+  if (loading) return <div className="p-8">Đang tải dữ liệu...</div>;
 
   return (
     <div className="p-8 space-y-8">

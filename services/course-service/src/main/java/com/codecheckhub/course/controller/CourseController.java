@@ -1,6 +1,7 @@
 package com.codecheckhub.course.controller;
 
 import com.codecheckhub.course.dto.AnalyticsResponse;
+import com.codecheckhub.course.dto.DashboardStatsResponse;
 import com.codecheckhub.course.dto.CreateCourseRequest;
 import com.codecheckhub.course.dto.JoinClassRequest;
 import com.codecheckhub.course.entity.Course;
@@ -82,5 +83,11 @@ public class CourseController {
     @Operation(summary = "Get course analytics")
     public ResponseEntity<AnalyticsResponse> getCourseAnalytics(@PathVariable UUID id) {
         return ResponseEntity.ok(courseService.getCourseAnalytics(id));
+    }
+
+    @GetMapping("/lecturer/dashboard-stats")
+    @Operation(summary = "Get dashboard stats for current lecturer")
+    public ResponseEntity<DashboardStatsResponse> getDashboardStats(@RequestHeader("X-User-Id") String teacherId) {
+        return ResponseEntity.ok(courseService.getDashboardStats(UUID.fromString(teacherId)));
     }
 }

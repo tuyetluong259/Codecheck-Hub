@@ -230,6 +230,9 @@ export default function GradingAndAnalytics() {
                            <button onClick={() => handlePenalize(pair.id, 'EXCUSE')} className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-600 hover:bg-slate-50">Bỏ qua</button>
                          </>
                        )}
+                       <Link to={`/lecturer/compare?sub1=${pair.id}&sub2=${pair.plagiarismMatchedSubmissionId}`} className="rounded bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-200">
+                         Compare Code
+                       </Link>
                     </td>
                   </tr>
                 ))}

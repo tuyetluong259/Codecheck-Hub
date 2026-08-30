@@ -1,13 +1,47 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft, Save, Check, ChevronRight } from "lucide-react";
+import api from "../../api/axios";
 
 export default function CodeComparison() {
   const [decision, setDecision] = useState("FLAG");
   const [comment, setComment] = useState("Hai bài làm trùng khớp 94% cấu trúc thuật toán Stack, chỉ thay đổi tên biến 'st' thành 'stack'. 0 điểm.");
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const sub1 = queryParams.get("sub1");
+  const sub2 = queryParams.get("sub2");
 
-  const handleSave = () => navigate("/lecturer/grades");
+  const [compareData, setCompareData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!sub1 || !sub2) return;
+    const fetchCompare = async () => {
+      try {
+        const res = await api.get(`/submissions/compare?sub1=${sub1}&sub2=${sub2}`);
+        setCompareData(res.data);
+      } catch (err) {
+        console.error("Failed to fetch comparison", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCompare();
+  }, [sub1, sub2]);
+
+  const handleSave = async () => {
+    try {
+      const action = decision === "FLAG" ? "PENALIZE" : "EXCUSE";
+      await api.put(`/submissions/${sub1}/penalty?action=${action}`);
+      navigate("/lecturer/grades");
+    } catch (err) {
+      alert("Cập nhật thất bại!");
+    }
+  };
+
+  if (loading) return <div className="p-8">Đang phân tích đạo văn...</div>;
+  if (!compareData) return <div className="p-8">Không thể tải dữ liệu so sánh.</div>;
 
   return (
     <div className="p-8 space-y-8">
@@ -39,36 +73,12 @@ export default function CodeComparison() {
 
         <div className="grid grid-cols-1 gap-0 md:grid-cols-2">
           <div className="border-r border-slate-200">
-            <div className="border-b border-slate-200 bg-[#f8fbff] px-4 py-3 text-sm font-black text-slate-700">Student A: Nguyễn Văn A (#1032) <span className="text-slate-500">Submitted: 14:12, 10/8</span></div>
-            <pre className="min-h-[360px] overflow-auto bg-white p-4 font-mono text-[13px] leading-6 text-slate-700 whitespace-pre-wrap">{`public boolean isValid(String s) {
-    Stack<Character> stack = new Stack<>();
-    for (char c : s.toCharArray()) {
-        if (c == '(' || c == '[' || c == '{') {
-            stack.push(c);
-        } else if (c == ')' || c == ']' || c == '}') {
-            if (stack.isEmpty()) return false;
-            char top = stack.pop();
-            if ((c == ')' && top != '(') || ... ) return false;
-        }
-    }
-    return stack.isEmpty();
-}`}</pre>
+            <div className="border-b border-slate-200 bg-[#f8fbff] px-4 py-3 text-sm font-black text-slate-700">Student A: {compareData.student1Id.substring(0,8)}...</div>
+            <pre className="min-h-[360px] overflow-auto bg-white p-4 font-mono text-[13px] leading-6 text-slate-700 whitespace-pre-wrap">{compareData.code1}</pre>
           </div>
           <div>
-            <div className="border-b border-slate-200 bg-[#f8fbff] px-4 py-3 text-sm font-black text-slate-700">Student B: Trần Văn B (#1045) <span className="text-slate-500">Submitted: 14:22, 10/8</span></div>
-            <pre className="min-h-[360px] overflow-auto bg-white p-4 font-mono text-[13px] leading-6 text-slate-700 whitespace-pre-wrap">{`public boolean isValid(String s) {
-    Stack<Character> stack = new Stack<>();
-    for (char c : s.toCharArray()) {
-        if (c == '(' || c == '[' || c == '{') {
-            stack.push(c);
-        } else if (c == ')' || c == ']' || c == '}') {
-            if (stack.isEmpty()) return false;
-            char top = stack.pop();
-            if ((c == ')' && top != '(') || ... ) return false;
-        }
-    }
-    return stack.isEmpty();
-}`}</pre>
+            <div className="border-b border-slate-200 bg-[#f8fbff] px-4 py-3 text-sm font-black text-slate-700">Student B: {compareData.student2Id.substring(0,8)}...</div>
+            <pre className="min-h-[360px] overflow-auto bg-white p-4 font-mono text-[13px] leading-6 text-slate-700 whitespace-pre-wrap">{compareData.code2}</pre>
           </div>
         </div>
       </div>
@@ -77,18 +87,13 @@ export default function CodeComparison() {
         <div className="mb-4 text-xl font-black uppercase tracking-[0.12em] text-red-600">Instructor Decision Panel</div>
 
         <label className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-lg font-bold text-red-700">
-          <input type="checkbox" className="h-4 w-4 accent-red-600" checked readOnly />
+          <input type="radio" name="decision" value="FLAG" checked={decision === "FLAG"} onChange={() => setDecision("FLAG")} className="h-4 w-4 accent-red-600" />
           <span>Flag as Plagiarism (Assign 0 points &amp; Record violation)</span>
         </label>
 
         <label className="mt-3 flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 text-lg font-medium text-slate-700">
-          <input type="checkbox" className="h-4 w-4 accent-[#1d4ed8]" />
-          <span>Dismss Warning (Ignore warning, keep score unchanged)</span>
-        </label>
-
-        <label className="mt-3 flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 text-lg font-medium text-slate-700">
-          <input type="checkbox" className="h-4 w-4 accent-[#1d4ed8]" />
-          <span>Request Clarification (Send a notification requiring students to provide an explanation)</span>
+          <input type="radio" name="decision" value="DISMISS" checked={decision === "DISMISS"} onChange={() => setDecision("DISMISS")} className="h-4 w-4 accent-[#1d4ed8]" />
+          <span>Dismiss Warning (Ignore warning, keep score unchanged)</span>
         </label>
 
         <div className="mt-6">

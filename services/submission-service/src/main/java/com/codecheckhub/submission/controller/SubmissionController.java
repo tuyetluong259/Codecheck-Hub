@@ -1,6 +1,7 @@
 package com.codecheckhub.submission.controller;
 
 import com.codecheckhub.submission.entity.Submission;
+import com.codecheckhub.submission.dto.CompareResponse;
 import com.codecheckhub.submission.messaging.JudgeRequest;
 import com.codecheckhub.submission.service.SubmissionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -101,6 +102,19 @@ public class SubmissionController {
         }
 
         return ResponseEntity.ok(submissionService.getSuspiciousSubmissions(problemId, threshold));
+    }
+
+    @GetMapping("/compare")
+    @Operation(summary = "Compare two submissions for plagiarism")
+    public ResponseEntity<CompareResponse> compareSubmissions(
+            @RequestParam UUID sub1,
+            @RequestParam UUID sub2,
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role) {
+        
+        if (!"TEACHER".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(submissionService.compareSubmissions(sub1, sub2));
     }
 
     @Data

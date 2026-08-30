@@ -6,30 +6,31 @@ import api from "../../api/axios";
 export default function LecturerClassDetail() {
   const { id } = useParams();
   const [classInfo, setClassInfo] = useState(null);
+  const [classProblems, setClassProblems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchClassDetail = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get(`/courses/${id}`);
-        setClassInfo(res.data);
+        const [resInfo, resProbs] = await Promise.all([
+          api.get(`/courses/${id}`),
+          api.get(`/problems?courseId=${id}`)
+        ]);
+        setClassInfo(resInfo.data);
+        setClassProblems(resProbs.data);
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    fetchClassDetail();
+    fetchData();
   }, [id]);
 
   if (loading) return <div className="p-8">Đang tải...</div>;
   if (!classInfo) return <div className="p-8 text-rose-500 font-bold">Không tìm thấy thông tin lớp học</div>;
 
-  const classProblems = [
-    { id: 1, title: "Bài tập 1: Triển khai Danh sách liên kết đơn", submissions: "45 / 45", deadline: "23:59 - 25/08/2026", active: true },
-    { id: 2, title: "Bài tập 2: Thuật toán sắp xếp nhanh (QuickSort)", submissions: "42 / 45", deadline: "23:59 - 30/08/2026", active: true },
-    { id: 3, title: "Bài tập 3: Cây nhị phân tìm kiếm cân bằng (AVL)", submissions: "12 / 45", deadline: "23:59 - 15/09/2026", active: true },
-  ];
+
 
   return (
     <div className="p-8 space-y-8">
@@ -59,8 +60,8 @@ export default function LecturerClassDetail() {
               <div className="space-y-2">
                 <h3 className="text-base font-extrabold text-slate-800">{prob.title}</h3>
                 <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-500">
-                  <span className="inline-flex items-center gap-1"><Calendar className="h-4 w-4" /> Hạn: {prob.deadline}</span>
-                  <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 font-bold text-slate-700"><FileText className="h-3.5 w-3.5" /> {prob.submissions} students</span>
+                  <span className="inline-flex items-center gap-1"><Calendar className="h-4 w-4" /> CPU: {prob.timeLimitMs}ms - RAM: {prob.memoryLimitMb}MB</span>
+                  <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 font-bold text-slate-700"><FileText className="h-3.5 w-3.5" /> Difficulty: {prob.difficulty}</span>
                 </div>
               </div>
 

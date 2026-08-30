@@ -8,6 +8,7 @@ import com.codecheckhub.course.repository.CourseRepository;
 import com.codecheckhub.course.repository.ClassMemberRepository;
 import com.codecheckhub.course.repository.ProblemRepository;
 import com.codecheckhub.course.dto.AnalyticsResponse;
+import com.codecheckhub.course.dto.DashboardStatsResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -119,5 +120,24 @@ public class CourseService {
         }
         
         return AnalyticsResponse.builder().build();
+    }
+
+    public DashboardStatsResponse getDashboardStats(UUID teacherId) {
+        List<Course> courses = courseRepository.findByTeacherId(teacherId);
+        long totalCourses = courses.size();
+        
+        List<UUID> courseIds = courses.stream().map(Course::getId).collect(Collectors.toList());
+        long totalStudents = courseIds.isEmpty() ? 0 : classMemberRepository.countDistinctStudentIdByClassIdIn(courseIds);
+        long totalProblems = courseIds.isEmpty() ? 0 : problemRepository.findByCourseIdIn(courseIds).size();
+        
+        // Try to fetch plagiarism alerts from submission-service (if supported) or return 0 for now.
+        long recentPlagiarismAlerts = 0;
+        
+        return DashboardStatsResponse.builder()
+                .totalCourses(totalCourses)
+                .totalStudents(totalStudents)
+                .totalProblems(totalProblems)
+                .recentPlagiarismAlerts(recentPlagiarismAlerts)
+                .build();
     }
 }

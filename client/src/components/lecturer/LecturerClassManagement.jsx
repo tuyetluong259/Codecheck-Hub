@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PlusCircle, Key, Users, ArrowRight } from "lucide-react";
+import { PlusCircle, Key, Users, ArrowRight, Copy, CheckCircle2 } from "lucide-react";
 import api from "../../api/axios";
 
 export default function LecturerClassManagement() {
@@ -9,6 +9,13 @@ export default function LecturerClassManagement() {
   const [classCode, setClassCode] = useState("CS-" + Math.floor(1000 + Math.random() * 9000));
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(classCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const fetchClasses = async () => {
     try {
@@ -105,12 +112,21 @@ export default function LecturerClassManagement() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Join Code</label>
-                <input
-                  type="text"
-                  readOnly
-                  value={classCode}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-black tracking-[0.2em] text-slate-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    readOnly
+                    value={classCode}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-black tracking-[0.2em] text-slate-500 pr-12"
+                  />
+                  <button
+                    onClick={handleCopy}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
+                    title="Copy code"
+                  >
+                    {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
             </div>
 

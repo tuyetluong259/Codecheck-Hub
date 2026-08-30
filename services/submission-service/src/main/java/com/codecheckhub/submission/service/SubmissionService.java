@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 import com.codecheckhub.submission.dto.AnalyticsResponse;
+import com.codecheckhub.submission.dto.CompareResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -237,6 +238,25 @@ public class SubmissionService {
                 .totalBugs(bugs)
                 .totalCodeSmells(smells)
                 .totalVulnerabilities(vulnerabilities)
+                .build();
+    }
+
+    public CompareResponse compareSubmissions(UUID sub1Id, UUID sub2Id) {
+        Submission sub1 = getById(sub1Id);
+        Submission sub2 = getById(sub2Id);
+        
+        // Actually, we should find which one matched which or just return their scores.
+        // For simplicity, we just return the codes and the highest plagiarism score of the two.
+        Double score = 0.0;
+        if (sub1.getPlagiarismScore() != null) score = Math.max(score, sub1.getPlagiarismScore());
+        if (sub2.getPlagiarismScore() != null) score = Math.max(score, sub2.getPlagiarismScore());
+        
+        return CompareResponse.builder()
+                .student1Id(sub1.getStudentId())
+                .code1(sub1.getSourceCode())
+                .student2Id(sub2.getStudentId())
+                .code2(sub2.getSourceCode())
+                .plagiarismScore(score)
                 .build();
     }
 }
