@@ -9,6 +9,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import com.codecheckhub.notification.entity.Notification;
+import com.codecheckhub.notification.service.NotificationService;
 
 @Component
 @RequiredArgsConstructor
@@ -16,6 +18,7 @@ import java.util.Map;
 public class ResultConsumer {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationService notificationService;
 
     @Value("${rabbitmq.queue.result}")
     private String resultQueue;
@@ -47,6 +50,24 @@ public class ResultConsumer {
             // Cũng push đến user queue nếu biết studentId
             if (result.containsKey("studentId") && result.get("studentId") != null) {
                 String studentId = result.get("studentId").toString();
+                
+                // 1. Lưu vào Database
+                String status = result.containsKey("status") ? result.get("status").toString() : "UNKNOWN";
+                String message = "Your submission for " + submissionId + " was graded: " + status;
+                if (result.containsKey("score")) {
+                    message += ". Score: " + result.get("score");
+                }
+                Notification notif = notificationService.saveNotification(
+                        studentId,
+                        "SUBMISSION_RESULT",
+                        "Submission Graded",
+                        message
+                );
+                
+                // Add the notification ID to the payload for the frontend
+                result.put("notificationId", notif.getId());
+
+                // 2. Push qua WebSocket
                 messagingTemplate.convertAndSend(
                         "/queue/student/" + studentId,
                         result

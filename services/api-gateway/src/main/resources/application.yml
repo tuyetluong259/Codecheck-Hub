@@ -54,6 +54,14 @@ spring:
           filters:
             - name: JwtAuthFilter
 
+        # Notification API route
+        - id: notifications-route
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - name: JwtAuthFilter
+
         # Notification WebSocket route
         - id: ws-route
           uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}

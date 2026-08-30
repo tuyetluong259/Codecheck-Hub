@@ -1,13 +1,49 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Bell, Search, LogOut, Menu, Code2 } from 'lucide-react';
+import api from '../../api/axios';
 
 export default function Navbar() {
   const { user, logout } = useContext(AuthContext);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await api.get('/notifications');
+      setNotifications(response.data);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      // Polling could be added here or rely on WebSocket for updates
+    }
+  }, [user]);
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await api.put(`/notifications/${id}/read`);
+      setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.put('/notifications/read-all');
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -56,37 +92,43 @@ export default function Navbar() {
             className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white transition hover:bg-blue-700 hover:border-blue-700"
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#1d9df2]" />
+            {notifications.filter(n => !n.read).length > 0 && (
+              <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 ring-2 ring-[#1d9df2] text-[0.6rem] font-bold">
+                {notifications.filter(n => !n.read).length}
+              </span>
+            )}
           </button>
 
           {isNotifOpen && (
             <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-xl bg-white shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none overflow-hidden">
               <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 bg-slate-50">
                 <h3 className="text-sm font-bold text-slate-800">Notifications</h3>
-                <span className="text-xs font-medium text-blue-600 hover:text-blue-800 cursor-pointer">Mark all as read</span>
+                <span onClick={handleMarkAllAsRead} className="text-xs font-medium text-blue-600 hover:text-blue-800 cursor-pointer">Mark all as read</span>
               </div>
               <div className="max-h-80 overflow-y-auto">
                 <div className="flex flex-col">
-                  {/* Sample Notification 1 */}
-                  <div className="flex gap-3 px-4 py-3 hover:bg-slate-50 border-b border-slate-50 transition cursor-pointer">
-                    <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
-                      <Code2 className="h-4 w-4" />
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-sm text-slate-500">
+                      No notifications yet.
                     </div>
-                    <div>
-                      <p className="text-sm text-slate-800"><span className="font-semibold">Code Submission</span> was graded successfully. You scored 100/100.</p>
-                      <p className="text-xs text-slate-500 mt-1">2 minutes ago</p>
-                    </div>
-                  </div>
-                  {/* Sample Notification 2 */}
-                  <div className="flex gap-3 px-4 py-3 hover:bg-slate-50 transition cursor-pointer bg-blue-50/50">
-                    <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                      <Bell className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-800"><span className="font-semibold">System Update</span>: The global problem bank has been updated with 5 new challenges.</p>
-                      <p className="text-xs text-slate-500 mt-1">1 hour ago</p>
-                    </div>
-                  </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div 
+                        key={notif.id} 
+                        onClick={() => handleMarkAsRead(notif.id)}
+                        className={`flex gap-3 px-4 py-3 hover:bg-slate-50 transition cursor-pointer ${notif.read ? 'border-b border-slate-50' : 'bg-blue-50/50'}`}
+                      >
+                        <div className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${notif.type === 'SUBMISSION_RESULT' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                          {notif.type === 'SUBMISSION_RESULT' ? <Code2 className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                        </div>
+                        <div>
+                          <p className={`text-sm text-slate-800 ${!notif.read ? 'font-semibold' : ''}`}>{notif.title}</p>
+                          <p className="text-sm text-slate-600 mt-0.5">{notif.message}</p>
+                          <p className="text-xs text-slate-500 mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
               <div className="border-t border-slate-100 px-4 py-2 bg-slate-50 text-center text-xs font-semibold text-slate-600 hover:text-blue-600 cursor-pointer">
