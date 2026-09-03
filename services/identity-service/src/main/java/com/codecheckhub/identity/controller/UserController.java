@@ -47,6 +47,12 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(userService.getAllUsers(), "Success"));
     }
 
+    @PostMapping("/batch")
+    @Operation(summary = "Get multiple users by IDs")
+    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getUsersBatch(@RequestBody java.util.List<UUID> ids) {
+        return ResponseEntity.ok(ApiResponse.success(userService.getUsersBatch(ids), "Success"));
+    }
+
     @PostMapping
     @Operation(summary = "Create user (Admin only)")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(

@@ -12,15 +12,14 @@ export default function StudentClasses() {
   const fetchClasses = async () => {
     try {
       const res = await api.get('/courses/student');
-      // Thêm data ảo cho lecturer và progress để giao diện đẹp (có thể làm backend sau)
       const formattedClasses = res.data.map(c => ({
         ...c,
-        lecturer: "Giảng viên",
-        progress: 0
+        lecturer: c.teacherName || "Giảng viên",
+        progress: 0 // Will implement progress tracking in future API update
       }));
       setClasses(formattedClasses);
     } catch (err) {
-      console.error("Failed to fetch classes", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }

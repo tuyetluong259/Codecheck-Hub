@@ -4,6 +4,7 @@ import com.codecheckhub.course.dto.AnalyticsResponse;
 import com.codecheckhub.course.dto.DashboardStatsResponse;
 import com.codecheckhub.course.dto.CreateCourseRequest;
 import com.codecheckhub.course.dto.JoinClassRequest;
+import com.codecheckhub.course.dto.ClassMemberResponse;
 import com.codecheckhub.course.entity.Course;
 import com.codecheckhub.course.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -89,5 +90,11 @@ public class CourseController {
     @Operation(summary = "Get dashboard stats for current lecturer")
     public ResponseEntity<DashboardStatsResponse> getDashboardStats(@RequestHeader("X-User-Id") String teacherId) {
         return ResponseEntity.ok(courseService.getDashboardStats(UUID.fromString(teacherId)));
+    }
+
+    @GetMapping("/{id}/members")
+    @Operation(summary = "Get members of a course")
+    public ResponseEntity<List<ClassMemberResponse>> getCourseMembers(@PathVariable UUID id) {
+        return ResponseEntity.ok(courseService.getCourseMembers(id));
     }
 }

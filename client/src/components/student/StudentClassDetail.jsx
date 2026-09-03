@@ -13,20 +13,57 @@ export default function StudentClassDetail() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("assignments");
   const [classInfo, setClassInfo] = useState(null);
+  const [assignments, setAssignments] = useState([]);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchClassDetail = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get(`/courses/${id}`);
-        setClassInfo(res.data);
+        const [resInfo, resProbs, resHistory, resMembers] = await Promise.all([
+          api.get(`/courses/${id}`),
+          api.get(`/problems?courseId=${id}`),
+          api.get(`/submissions/student/history`),
+          api.get(`/courses/${id}/members`)
+        ]);
+        
+        setClassInfo(resInfo.data);
+        setMembers(resMembers.data);
+        
+        // Map problems with submission status
+        const history = resHistory.data;
+        const mappedAssignments = resProbs.data.map(prob => {
+          // Find the best submission for this problem
+          const subs = history.filter(s => s.problemId === prob.id);
+          const isCompleted = subs.some(s => s.status === "ACCEPTED");
+          
+          let score = null;
+          let status = "PENDING";
+          if (subs.length > 0) {
+             if (isCompleted) {
+               status = "COMPLETED";
+               score = subs.find(s => s.status === "ACCEPTED").score || 100;
+             } else {
+               status = "ATTEMPTED";
+               score = subs[0].score || 0;
+             }
+          }
+
+          return {
+            ...prob,
+            status,
+            score
+          };
+        });
+        
+        setAssignments(mappedAssignments);
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    fetchClassDetail();
+    fetchData();
   }, [id]);
 
   if (loading) return <div className="p-8">Đang tải...</div>;
@@ -34,38 +71,9 @@ export default function StudentClassDetail() {
 
 
 
-  const assignments = [
-    {
-      id: 1,
-      title: "Bài tập 1: Triển khai Danh sách liên kết đơn",
-      deadline: "23:59 - 25/08/2026",
-      status: "COMPLETED",
-      score: 95,
-      difficulty: "Dễ",
-    },
-    {
-      id: 2,
-      title: "Bài tập 2: Thuật toán sắp xếp nhanh (QuickSort)",
-      deadline: "23:59 - 30/08/2026",
-      status: "COMPLETED",
-      score: 100,
-      difficulty: "Trung bình",
-    },
-    {
-      id: 3,
-      title: "Bài tập 3: Cây nhị phân tìm kiếm cân bằng (AVL)",
-      deadline: "23:59 - 15/09/2026",
-      status: "PENDING",
-      score: null,
-      difficulty: "Khó",
-    },
-  ];
 
-  const members = [
-    { name: "Lương Thị Ánh Tuyết", role: "Trưởng nhóm", email: "tuyet.lt@school.edu.vn" },
-    { name: "Nguyễn Văn Hùng", role: "Thành viên", email: "hung.nv@school.edu.vn" },
-    { name: "Trần Thị Lan", role: "Thành viên", email: "lan.tt@school.edu.vn" },
-  ];
+
+
 
   return (
     <div className="p-8 space-y-8">
@@ -107,12 +115,12 @@ export default function StudentClassDetail() {
             <div key={asm.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${asm.difficulty === "Dễ" ? "bg-emerald-50 text-emerald-600" : asm.difficulty === "Trung bình" ? "bg-amber-50 text-amber-600" : "bg-rose-50 text-rose-600"}`}>
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${asm.difficulty === "HARD" ? "bg-rose-50 text-rose-600" : asm.difficulty === "MEDIUM" ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}>
                     {asm.difficulty}
                   </span>
                   <span className="text-xs text-slate-400 font-semibold flex items-center space-x-1">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span>Hạn nộp: {asm.deadline}</span>
+                    <span>Time Limit: {asm.timeLimitMs}ms</span>
                   </span>
                 </div>
                 <h3 className="font-extrabold text-slate-800 text-base">{asm.title}</h3>

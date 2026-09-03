@@ -1,14 +1,24 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Calendar, Cpu, CheckCircle2, AlertCircle, CircleDashed } from "lucide-react";
+import api from "../../api/axios";
 
 export default function SubmissionHistory() {
-  const submissions = [
-    { id: 1001, problem: "two sum 1", lang: "Java", time: "11/08/2026 15:30", status: "ACCEPTED", runtime: "120ms", memory: "15MB", cleanCode: "92%" },
-    { id: 1032, problem: "agent", lang: "Python", time: "11/08/2026 15:30", status: "WRONG_ANSWER", runtime: "120ms", memory: "20MB", cleanCode: "82%" },
-    { id: 1014, problem: "two sum 2", lang: "Java", time: "11/08/2026 15:30", status: "TLE", runtime: "120ms", memory: "17MB", cleanCode: "72%" },
-    { id: 1016, problem: "two sum 3", lang: "C++", time: "11/08/2026 15:30", status: "COMPILE_ERROR", runtime: "120ms", memory: "18MB", cleanCode: "58%" },
-    { id: 1015, problem: "two sum 3", lang: "C++", time: "11/08/2026 15:30", status: "PENDING", runtime: "120ms", memory: "18MB", cleanCode: "70%" },
-  ];
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await api.get('/submissions/student/history');
+        setSubmissions(res.data);
+      } catch (err) {
+        console.error("Failed to fetch history", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, []);
 
   return (
     <div className="p-8 space-y-8">
@@ -36,10 +46,12 @@ export default function SubmissionHistory() {
             </tr>
           </thead>
           <tbody>
-            {submissions.map((sub) => (
+            {loading ? (
+              <tr><td colSpan="6" className="p-4 text-center">Đang tải...</td></tr>
+            ) : submissions.map((sub) => (
               <tr key={sub.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/80">
-                <td className="p-4 text-slate-600 font-bold">{sub.id}</td>
-                <td className="p-4 text-slate-800 font-extrabold">{sub.problem}</td>
+                <td className="p-4 text-slate-600 font-bold">{sub.id.substring(0, 8)}...</td>
+                <td className="p-4 text-slate-800 font-extrabold">{sub.problemId ? "Problem " + sub.problemId.substring(0,8) : "N/A"}</td>
                 <td className="p-4">
                   {sub.status === "ACCEPTED" ? (
                     <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-700">
@@ -51,7 +63,7 @@ export default function SubmissionHistory() {
                       <AlertCircle className="h-3.5 w-3.5" />
                       <span>Wrong Answer</span>
                     </span>
-                  ) : sub.status === "TLE" ? (
+                  ) : sub.status === "TIME_LIMIT" ? (
                     <span className="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-700">
                       <CircleDashed className="h-3.5 w-3.5" />
                       <span>TLE</span>
@@ -64,20 +76,22 @@ export default function SubmissionHistory() {
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-lg bg-yellow-100 px-2.5 py-1 text-xs font-black text-yellow-700">
                       <CircleDashed className="h-3.5 w-3.5" />
-                      <span>Pending</span>
+                      <span>{sub.status}</span>
                     </span>
                   )}
                 </td>
                 <td className="p-4">
-                  <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{sub.lang}</span>
+                  <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{sub.language}</span>
                 </td>
                 <td className="p-4 text-slate-600 font-medium flex items-center gap-2">
                   <Cpu className="h-4 w-4 text-slate-400" />
-                  <span>{sub.runtime}/{sub.memory}</span>
+                  <span>{sub.executionTime || 0}ms / {sub.memoryUsed || 0}MB</span>
                 </td>
-                <td className="p-4 text-slate-600 font-medium flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-slate-400" />
-                  <span>{sub.time}</span>
+                <td className="p-4 text-slate-600 font-medium whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-slate-400" />
+                    <span>{new Date(sub.submittedAt).toLocaleString()}</span>
+                  </div>
                 </td>
               </tr>
             ))}

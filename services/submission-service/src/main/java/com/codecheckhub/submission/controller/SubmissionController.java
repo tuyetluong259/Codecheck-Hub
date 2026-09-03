@@ -2,6 +2,7 @@ package com.codecheckhub.submission.controller;
 
 import com.codecheckhub.submission.entity.Submission;
 import com.codecheckhub.submission.dto.CompareResponse;
+import com.codecheckhub.submission.dto.StudentStatsResponse;
 import com.codecheckhub.submission.messaging.JudgeRequest;
 import com.codecheckhub.submission.service.SubmissionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -115,6 +116,18 @@ public class SubmissionController {
             return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(submissionService.compareSubmissions(sub1, sub2));
+    }
+
+    @GetMapping("/student/history")
+    @Operation(summary = "Get submission history for current student")
+    public ResponseEntity<List<Submission>> getStudentHistory(@RequestHeader("X-User-Id") String studentId) {
+        return ResponseEntity.ok(submissionService.getStudentHistory(UUID.fromString(studentId)));
+    }
+
+    @GetMapping("/student/stats")
+    @Operation(summary = "Get dashboard statistics for current student")
+    public ResponseEntity<StudentStatsResponse> getStudentStats(@RequestHeader("X-User-Id") String studentId) {
+        return ResponseEntity.ok(submissionService.getStudentStats(UUID.fromString(studentId)));
     }
 
     @Data

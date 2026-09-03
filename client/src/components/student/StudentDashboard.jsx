@@ -1,18 +1,44 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Award, Clock, BookOpen, ChevronRight } from "lucide-react";
+import api from "../../api/axios";
 
 export default function StudentDashboard() {
-  const stats = [
-    { title: "Bài tập hoàn thành", value: "24 / 35", icon: CheckCircle2, color: "text-emerald-600 bg-emerald-50 border border-emerald-100" },
-    { title: "Tỷ lệ Accepted (AC)", value: "82.4%", icon: Award, color: "text-indigo-600 bg-indigo-50 border border-indigo-100" },
-    { title: "Điểm Clean Code TB", value: "88 / 100", icon: BookOpen, color: "text-amber-600 bg-amber-50 border border-amber-100" },
-    { title: "Thời gian luyện tập", value: "14.5 giờ", icon: Clock, color: "text-sky-600 bg-sky-50 border border-sky-100" }
-  ];
+  const [statsData, setStatsData] = useState(null);
+  const [recentClasses, setRecentClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const recentClasses = [
-    { id: 1, name: "Cấu trúc dữ liệu và Giải thuật - Nhóm 2", progress: 75, lastActive: "2 giờ trước" },
-    { id: 2, name: "Lập trình hướng đối tượng (Java) - Nhóm 1", progress: 90, lastActive: "Hôm qua" }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [resStats, resClasses] = await Promise.all([
+          api.get('/submissions/student/stats'),
+          api.get('/courses/student')
+        ]);
+        setStatsData(resStats.data);
+        
+        // Limit to 3 recent classes
+        const formattedClasses = resClasses.data.slice(0, 3).map(c => ({
+          ...c,
+          lecturer: c.teacherName || "Giảng viên",
+          progress: 0, // Will implement progress tracking in future API update
+          lastActive: "Gần đây"
+        }));
+        setRecentClasses(formattedClasses);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const stats = [
+    { title: "Bài tập hoàn thành", value: statsData ? `${statsData.totalProblemsSolved}` : "-", icon: CheckCircle2, color: "text-emerald-600 bg-emerald-50 border border-emerald-100" },
+    { title: "Tỷ lệ Accepted (AC)", value: statsData ? `${statsData.acceptanceRate.toFixed(1)}%` : "-", icon: Award, color: "text-indigo-600 bg-indigo-50 border border-indigo-100" },
+    { title: "Điểm Clean Code TB", value: statsData ? `${statsData.averageCleanCodeScore} / 100` : "-", icon: BookOpen, color: "text-amber-600 bg-amber-50 border border-amber-100" },
+    { title: "Tổng lượt nộp bài", value: statsData ? `${statsData.totalSubmissions} lần` : "-", icon: Clock, color: "text-sky-600 bg-sky-50 border border-sky-100" }
   ];
 
   return (

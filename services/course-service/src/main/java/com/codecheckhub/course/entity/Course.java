@@ -32,7 +32,8 @@ public class Course {
     @Column
     private String description;
 
-
+    @Transient
+    private String teacherName;
 
     @Column(nullable = false)
     @Builder.Default
