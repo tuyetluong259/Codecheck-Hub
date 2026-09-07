@@ -5,6 +5,7 @@ import com.codecheckhub.identity.entity.User;
 import com.codecheckhub.identity.exception.AppException;
 import com.codecheckhub.identity.repository.UserRepository;
 import com.codecheckhub.identity.repository.RefreshTokenRepository;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -30,6 +32,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final StringRedisTemplate redisTemplate;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
 
@@ -54,12 +57,20 @@ public class UserService {
         return UserResponse.from(user);
     }
 
+    @Transactional
     public UserResponse toggleUserStatus(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "User not found"));
-        user.setActive(!user.isActive());
+        if (user.getStatus() == User.Status.ACTIVE || user.getStatus() == User.Status.PENDING) {
+            user.setStatus(User.Status.LOCKED);
+            refreshTokenRepository.revokeAllByUser(user);
+            redisTemplate.opsForValue().set("blacklist:user:" + user.getId(), "true", java.time.Duration.ofMinutes(15));
+        } else {
+            user.setStatus(User.Status.ACTIVE);
+            redisTemplate.delete("blacklist:user:" + user.getId());
+        }
         userRepository.save(user);
-        auditLogService.log("INFO", "Toggled status of user " + user.getUsername() + " to " + (user.isActive() ? "Active" : "Banned"), "Admin", null);
+        auditLogService.log("INFO", "Toggled status of user " + user.getUsername() + " to " + user.getStatus(), "Admin", null);
         return UserResponse.from(user);
     }
 
@@ -98,7 +109,7 @@ public class UserService {
                 .password(passwordEncoder.encode(password))
                 .studentId(username)
                 .role(role)
-                .active(true)
+                .status(User.Status.ACTIVE)
                 .build();
         userRepository.save(user);
         auditLogService.log("INFO", "Created new user " + user.getUsername() + " with role " + user.getRole(), "Admin", null);
@@ -168,7 +179,49 @@ public class UserService {
                 .password(passwordEncoder.encode(password))
                 .studentId(username)
                 .role(User.Role.STUDENT)
-                .active(true)
+                .status(User.Status.PENDING)
                 .build();
+    }
+
+    public List<UUID> syncStudents(List<com.codecheckhub.identity.dto.request.SyncStudentRequest> students) {
+        List<UUID> userIds = new ArrayList<>();
+        List<User> newUsersToSave = new ArrayList<>();
+
+        for (var req : students) {
+            String studentId = req.getStudentId();
+            if (studentId == null || studentId.isBlank()) continue;
+            
+            String username = studentId.trim();
+            String email = req.getEmail();
+            String finalEmail = (email == null || email.isBlank()) ? username + "@st.uth.edu.vn" : email.trim();
+
+            User existingUser = userRepository.findByUsername(username)
+                    .orElseGet(() -> userRepository.findByEmail(finalEmail).orElse(null));
+
+            if (existingUser != null) {
+                userIds.add(existingUser.getId());
+            } else {
+                User newUser = User.builder()
+                        .username(username)
+                        .email(finalEmail)
+                        .fullName(req.getFullName() != null && !req.getFullName().isBlank() ? req.getFullName().trim() : username)
+                        .password(passwordEncoder.encode(username)) // default password is username/mssv
+                        .studentId(username)
+                        .role(User.Role.STUDENT)
+                        .status(User.Status.PENDING)
+                        .className(req.getClassName())
+                        .build();
+                newUsersToSave.add(newUser);
+            }
+        }
+
+        if (!newUsersToSave.isEmpty()) {
+            userRepository.saveAll(newUsersToSave);
+            for (User u : newUsersToSave) {
+                userIds.add(u.getId());
+            }
+        }
+
+        return userIds;
     }
 }

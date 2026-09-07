@@ -12,12 +12,31 @@ export default function LecturerDashboard() {
   });
 
   const [loading, setLoading] = useState(true);
+  const [recentActivities, setRecentActivities] = useState([]);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const res = await api.get('/courses/lecturer/dashboard-stats');
         setDashboardStats(res.data);
+        // attempt to fetch recent activities from likely endpoints
+        try {
+          const possible = ['/activities/lecturer/recent', '/courses/lecturer/recent-activities', '/courses/lecturer/activities'];
+          for (const ep of possible) {
+            try {
+              const ares = await api.get(ep);
+              const payload = ares.data?.data ?? ares.data ?? [];
+              if (Array.isArray(payload) && payload.length > 0) {
+                setRecentActivities(payload);
+                break;
+              }
+            } catch (e) {
+              // ignore and try next
+            }
+          }
+        } catch (e) {
+          console.warn('No recent activities endpoint available');
+        }
       } catch (err) {
         console.error("Failed to fetch dashboard stats", err);
       } finally {
@@ -34,10 +53,6 @@ export default function LecturerDashboard() {
     { title: "Cảnh báo đạo văn mới nhất", value: `${dashboardStats.recentPlagiarismAlerts} sự kiện`, icon: ShieldAlert, color: "text-rose-600 bg-rose-50 border border-rose-100" }
   ];
 
-  const recentActivities = [
-    // Currently still mocked since we don't have a real activity stream API
-    { name: "Hệ thống", cls: "Cập nhật", msg: "Tính năng Dashboard đã tích hợp Data thực!", time: "vừa xong" },
-  ];
 
   if (loading) return <div className="p-8">Đang tải dữ liệu...</div>;
 
@@ -69,14 +84,16 @@ export default function LecturerDashboard() {
         <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-[0.08em]">Nhật ký hoạt động nộp bài mới nhất</h3>
           <div className="divide-y divide-slate-100">
-            {recentActivities.map((act, i) => (
+            {recentActivities.length === 0 ? (
+               <div className="py-8 text-center text-slate-500 font-semibold text-sm">Chưa có hoạt động nộp bài nào gần đây</div>
+            ) : recentActivities.map((act, i) => (
               <div key={i} className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-2 text-sm">
                 <div>
                   <span className="font-extrabold text-slate-800">{act.name}</span>
                   <span className="text-slate-500 font-medium"> ({act.cls}) </span>
-                  <span className="text-slate-600 font-semibold">{act.msg}</span>
+                  <span className="text-slate-600 font-semibold">{act.msg ?? act.message}</span>
                 </div>
-                <span className="text-xs text-slate-400 font-medium">{act.time}</span>
+                <span className="text-xs text-slate-400 font-medium">{act.time ?? act.createdAt ? new Date(act.createdAt).toLocaleString() : ''}</span>
               </div>
             ))}
           </div>

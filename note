@@ -1,0 +1,13 @@
+tốc độ upload của code, profile, ràng buộc về dung lượng, 
+RabbitMQ + Docker Engine API:
+-RabbitMQ hứng các request nộp code để tránh quá tải server. 
+-Sau đó, một worker sẽ gọi Docker API để dựng một container tạm thời, ném file code vào chạy, lấy kết quả rồi xóa container đi. 
+-Cực kỳ bảo mật 
+Cấu hình Resource Limit cho Docker: 
+-Khi gọi Docker Engine API để chạy code của sinh viên, nhớ giới hạn RAM (ví dụ tối đa 256MB) và CPU Time (ví dụ chạy quá 2 giây là ngắt - Time Limit Exceeded). 
+-Nếu không, một sinh viên viết vòng lặp vô hạn while(true) sẽ làm sập cả server Docker của bạn đó.
+Xử lý RabbitMQ Ack: 
+-Đảm bảo khi worker chấm xong bài code và báo kết quả thành công thì mới gửi ack (acknowledgement) về cho RabbitMQ để xóa tin nhắn khỏi hàng đợi, 
+tránh việc mất dữ liệu chấm bài nếu chẳng may server bị mất điện giữa chừng.
+Caching với Redis: 
+-Có thể dùng Redis để cache lại danh sách bài tập hot, hoặc cache bảng xếp hạng (Leaderboard) điểm số của sinh viên để giảm tải cho PostgreSQL.

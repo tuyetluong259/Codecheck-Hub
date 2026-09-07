@@ -64,6 +64,10 @@ public class Problem {
     @Column(name = "naming_convention")
     private String namingConvention;
 
+    @Column(name = "is_closed_notified")
+    @Builder.Default
+    private Boolean isClosedNotified = false;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

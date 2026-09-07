@@ -12,10 +12,9 @@ export default function StudentClasses() {
   const fetchClasses = async () => {
     try {
       const res = await api.get('/courses/student');
-      // Thêm data ảo cho lecturer và progress để giao diện đẹp (có thể làm backend sau)
       const formattedClasses = res.data.map(c => ({
         ...c,
-        lecturer: "Giảng viên",
+        lecturer: c.teacherName || "Giảng viên",
         progress: 0
       }));
       setClasses(formattedClasses);

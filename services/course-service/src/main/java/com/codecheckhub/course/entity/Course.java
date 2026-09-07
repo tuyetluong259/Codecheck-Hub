@@ -32,7 +32,15 @@ public class Course {
     @Column
     private String description;
 
+    @Column(columnDefinition = "TEXT")
+    private String syllabus;
 
+    @Column(columnDefinition = "TEXT")
+    private String passingCriteria;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean allowJoinByCode = false;
 
     @Column(nullable = false)
     @Builder.Default

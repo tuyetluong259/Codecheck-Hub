@@ -71,6 +71,11 @@ public class AuthService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "User not found"));
 
+        if (user.getStatus() == User.Status.PENDING) {
+            user.setStatus(User.Status.ACTIVE);
+            userRepository.save(user);
+        }
+
         // Revoke old refresh tokens
         refreshTokenRepository.revokeAllByUser(user);
 
@@ -87,6 +92,9 @@ public class AuthService {
         }
 
         User user = storedToken.getUser();
+        if (user.getStatus() == User.Status.LOCKED) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Tài khoản của bạn đã bị khóa.");
+        }
         storedToken.setRevoked(true);
         refreshTokenRepository.save(storedToken);
 

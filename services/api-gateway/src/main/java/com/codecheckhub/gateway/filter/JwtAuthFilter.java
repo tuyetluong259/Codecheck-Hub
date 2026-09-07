@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 
 import javax.crypto.SecretKey;
 
@@ -22,6 +24,9 @@ public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Co
 
     @Value("${jwt.secret}")
     private String jwtSecret;
+
+    @Autowired
+    private ReactiveStringRedisTemplate redisTemplate;
 
     public JwtAuthFilter() {
         super(Config.class);
@@ -39,15 +44,23 @@ public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Co
             try {
                 String token = authHeader.substring(7);
                 Claims claims = validateToken(token);
+                String userId = claims.get("userId", String.class);
 
-                // Forward user info trong header đến downstream service
-                ServerWebExchange mutatedExchange = exchange.mutate()
-                        .request(r -> r.header("X-User-Id", claims.get("userId", String.class))
-                                .header("X-User-Email", claims.getSubject())
-                                .header("X-User-Role", claims.get("role", String.class)))
-                        .build();
-
-                return chain.filter(mutatedExchange);
+                return redisTemplate.hasKey("blacklist:user:" + userId)
+                        .flatMap(isBlacklisted -> {
+                            if (Boolean.TRUE.equals(isBlacklisted)) {
+                                return unauthorized(exchange, "Tài khoản của bạn đã bị khóa");
+                            }
+                            
+                            // Forward user info trong header đến downstream service
+                            ServerWebExchange mutatedExchange = exchange.mutate()
+                                    .request(r -> r.header("X-User-Id", userId)
+                                            .header("X-User-Email", claims.getSubject())
+                                            .header("X-User-Role", claims.get("role", String.class)))
+                                    .build();
+            
+                            return chain.filter(mutatedExchange);
+                        });
             } catch (Exception e) {
                 log.error("JWT validation failed: {}", e.getMessage());
                 return unauthorized(exchange, "Invalid or expired token");
@@ -63,8 +76,13 @@ public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Co
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-        return exchange.getResponse().setComplete();
+        org.springframework.http.server.reactive.ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        response.getHeaders().setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        String body = "{\"message\":\"" + message + "\"}";
+        byte[] bytes = body.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        org.springframework.core.io.buffer.DataBuffer buffer = response.bufferFactory().wrap(bytes);
+        return response.writeWith(Mono.just(buffer));
     }
 
     public static class Config {}

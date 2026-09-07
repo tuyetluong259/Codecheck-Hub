@@ -44,9 +44,13 @@ public class User {
     @Column
     private String avatarUrl;
 
-    @Column(nullable = false)
+    @Column(name = "class_name")
+    private String className;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'ACTIVE'")
     @Builder.Default
-    private boolean active = true;
+    private Status status = Status.ACTIVE;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -56,5 +60,9 @@ public class User {
 
     public enum Role {
         STUDENT, TEACHER, ADMIN
+    }
+
+    public enum Status {
+        PENDING, ACTIVE, LOCKED
     }
 }

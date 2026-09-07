@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface ProblemRepository extends JpaRepository<Problem, UUID> {
     List<Problem> findByCourseId(UUID courseId);
     List<Problem> findByCourseIdIn(List<UUID> courseIds);
+    List<Problem> findByDeadlineBeforeAndIsClosedNotifiedFalse(java.time.LocalDateTime time);
 }

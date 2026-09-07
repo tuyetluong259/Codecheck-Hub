@@ -89,7 +89,7 @@ export default function AdminUserManagement() {
     if (filteredUsers.length === 0) return alert("Không có dữ liệu để export!");
     const csvHeader = "ID,Tên Đăng Nhập,Họ và Tên,Email,Role,Status\n";
     const csvContent = filteredUsers.map(u => 
-      `${u.id},${u.username},"${u.fullName}",${u.email},${u.role},${u.active ? 'Active' : 'Banned'}`
+      `${u.id},${u.username},"${u.fullName}",${u.email},${u.role},${u.status}`
     ).join("\n");
     
     const blob = new Blob([csvHeader + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -108,7 +108,7 @@ export default function AdminUserManagement() {
                         (u.username?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
                         (u.email?.toLowerCase() || "").includes(searchQuery.toLowerCase());
     const matchRole = roleFilter === "ALL" || u.role === roleFilter;
-    const matchStatus = statusFilter === "ALL" || (statusFilter === "ACTIVE" ? u.active : !u.active);
+    const matchStatus = statusFilter === "ALL" || u.status === statusFilter;
     return matchSearch && matchRole && matchStatus;
   });
 
@@ -157,7 +157,8 @@ export default function AdminUserManagement() {
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 focus:outline-none">
             <option value="ALL">Tất cả Trạng thái</option>
             <option value="ACTIVE">Hoạt động (Active)</option>
-            <option value="BANNED">Đã khóa (Banned)</option>
+            <option value="PENDING">Chờ kích hoạt (Pending)</option>
+            <option value="LOCKED">Đã khóa (Locked)</option>
           </select>
         </div>
 
@@ -189,14 +190,18 @@ export default function AdminUserManagement() {
                     </td>
                     <td className="p-4 text-sm font-medium text-slate-600">{u.username}</td>
                     <td className="p-4">
-                      <span className={`rounded-lg px-2.5 py-1 text-xs font-black ${u.active ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-                        {u.active ? "Active" : "Banned"}
+                      <span className={`rounded-lg px-2.5 py-1 text-xs font-black ${
+                        u.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" :
+                        u.status === "LOCKED" ? "bg-red-100 text-red-700" :
+                        "bg-amber-100 text-amber-700"
+                      }`}>
+                        {u.status}
                       </span>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         <button onClick={() => handleToggleStatus(u.id)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50">
-                          {u.active ? "Khóa" : "Mở khóa"}
+                          {u.status === "LOCKED" ? "Mở khóa" : "Khóa"}
                         </button>
                         <button onClick={() => handleDeleteUser(u.id)} className="rounded-xl border border-rose-200 bg-white p-2 text-rose-600 transition hover:bg-rose-50 hover:text-rose-700" title="Xóa người dùng">
                           <Trash2 className="h-4 w-4" />

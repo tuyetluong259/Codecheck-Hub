@@ -14,7 +14,8 @@ export default function Navbar() {
   const fetchNotifications = async () => {
     try {
       const response = await api.get('/notifications');
-      setNotifications(response.data);
+      let data = response.data?.data ?? response.data;
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }

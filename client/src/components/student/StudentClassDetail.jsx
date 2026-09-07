@@ -15,11 +15,20 @@ export default function StudentClassDetail() {
   const [classInfo, setClassInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [classProblems, setClassProblems] = useState([]);
+  const [classMembers, setClassMembers] = useState([]);
+
   useEffect(() => {
     const fetchClassDetail = async () => {
       try {
-        const res = await api.get(`/courses/${id}`);
-        setClassInfo(res.data);
+        const [resInfo, resProbs, resMembers] = await Promise.all([
+          api.get(`/courses/${id}`),
+          api.get(`/problems?courseId=${id}`),
+          api.get(`/courses/${id}/members`)
+        ]);
+        setClassInfo(resInfo.data?.data ?? resInfo.data);
+        setClassProblems(resProbs.data?.data ?? resProbs.data ?? []);
+        setClassMembers(resMembers.data?.data ?? resMembers.data ?? []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -33,40 +42,6 @@ export default function StudentClassDetail() {
   if (!classInfo) return <div className="p-8 text-rose-500 font-bold">Không tìm thấy thông tin lớp học</div>;
 
 
-
-  const assignments = [
-    {
-      id: 1,
-      title: "Bài tập 1: Triển khai Danh sách liên kết đơn",
-      deadline: "23:59 - 25/08/2026",
-      status: "COMPLETED",
-      score: 95,
-      difficulty: "Dễ",
-    },
-    {
-      id: 2,
-      title: "Bài tập 2: Thuật toán sắp xếp nhanh (QuickSort)",
-      deadline: "23:59 - 30/08/2026",
-      status: "COMPLETED",
-      score: 100,
-      difficulty: "Trung bình",
-    },
-    {
-      id: 3,
-      title: "Bài tập 3: Cây nhị phân tìm kiếm cân bằng (AVL)",
-      deadline: "23:59 - 15/09/2026",
-      status: "PENDING",
-      score: null,
-      difficulty: "Khó",
-    },
-  ];
-
-  const members = [
-    { name: "Lương Thị Ánh Tuyết", role: "Trưởng nhóm", email: "tuyet.lt@school.edu.vn" },
-    { name: "Nguyễn Văn Hùng", role: "Thành viên", email: "hung.nv@school.edu.vn" },
-    { name: "Trần Thị Lan", role: "Thành viên", email: "lan.tt@school.edu.vn" },
-  ];
-
   return (
     <div className="p-8 space-y-8">
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -76,7 +51,7 @@ export default function StudentClassDetail() {
         <h1 className="text-3xl font-black text-slate-800 tracking-tight">{classInfo.name}</h1>
         <p className="text-slate-500 text-sm max-w-4xl">{classInfo.description || "Lớp học CodeCheck Hub"}</p>
         <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.12em]">
-          Giảng viên phụ trách: <span className="text-slate-700">Giảng viên</span>
+          Giảng viên phụ trách: <span className="text-slate-700">{classInfo?.teacherName ?? classInfo?.instructorName ?? 'Giảng viên'}</span>
         </p>
       </div>
 
@@ -103,16 +78,18 @@ export default function StudentClassDetail() {
 
       {activeTab === "assignments" ? (
         <div className="space-y-4">
-          {assignments.map((asm) => (
+          {classProblems.length === 0 ? (
+             <div className="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200">Không có bài tập nào</div>
+          ) : classProblems.map((asm) => (
             <div key={asm.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${asm.difficulty === "Dễ" ? "bg-emerald-50 text-emerald-600" : asm.difficulty === "Trung bình" ? "bg-amber-50 text-amber-600" : "bg-rose-50 text-rose-600"}`}>
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${asm.difficulty === "EASY" || asm.difficulty === "Dễ" ? "bg-emerald-50 text-emerald-600" : asm.difficulty === "MEDIUM" || asm.difficulty === "Trung bình" ? "bg-amber-50 text-amber-600" : "bg-rose-50 text-rose-600"}`}>
                     {asm.difficulty}
                   </span>
                   <span className="text-xs text-slate-400 font-semibold flex items-center space-x-1">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span>Hạn nộp: {asm.deadline}</span>
+                    <span>Hạn nộp: {asm.deadline || "Không có"}</span>
                   </span>
                 </div>
                 <h3 className="font-extrabold text-slate-800 text-base">{asm.title}</h3>
@@ -123,7 +100,7 @@ export default function StudentClassDetail() {
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
                       <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-[0.12em]">Điểm</span>
-                      <span className="text-sm font-black text-emerald-600">{asm.score} / 100</span>
+                      <span className="text-sm font-black text-emerald-600">{asm.score ?? 100} / 100</span>
                     </div>
                     <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-lg uppercase">Đã nộp</span>
                   </div>
@@ -152,15 +129,17 @@ export default function StudentClassDetail() {
               </tr>
             </thead>
             <tbody>
-              {members.map((member, i) => (
+              {classMembers.length === 0 ? (
+                 <tr><td colSpan="3" className="p-4 text-center text-slate-500">Chưa có thành viên nào</td></tr>
+              ) : classMembers.map((member, i) => (
                 <tr key={i} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60">
-                  <td className="p-4 text-slate-800 font-extrabold">{member.name}</td>
+                  <td className="p-4 text-slate-800 font-extrabold">{member.fullName ?? member.name ?? member.username}</td>
                   <td className="p-4">
                     <span className={`px-2.5 py-0.5 rounded text-xs font-bold ${member.role === "Trưởng nhóm" ? "bg-[#eaf3ff] text-[#1d4ed8]" : "bg-slate-100 text-slate-600"}`}>
-                      {member.role}
+                      {member.role ?? member.position ?? 'Thành viên'}
                     </span>
                   </td>
-                  <td className="p-4 text-slate-500">{member.email}</td>
+                  <td className="p-4 text-slate-500">{member.email ?? member.emailAddress ?? '-'}</td>
                 </tr>
               ))}
             </tbody>

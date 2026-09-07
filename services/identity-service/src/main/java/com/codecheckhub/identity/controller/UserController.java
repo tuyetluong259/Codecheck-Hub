@@ -128,4 +128,13 @@ public class UserController {
         return authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));
     }
+
+    @PostMapping("/internal/sync-students")
+    @Operation(summary = "Internal API to sync students from Course Service")
+    public ResponseEntity<ApiResponse<java.util.List<UUID>>> syncStudents(
+            @RequestBody java.util.List<com.codecheckhub.identity.dto.request.SyncStudentRequest> students
+    ) {
+        // Internal endpoint called by course-service with Lecturer's JWT
+        return ResponseEntity.ok(ApiResponse.success(userService.syncStudents(students), "Successfully synced students"));
+    }
 }
