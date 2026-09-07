@@ -48,6 +48,12 @@ public class UserService {
         return UserResponse.from(user);
     }
 
+    public List<UserResponse> getUsersBatch(List<UUID> ids) {
+        return userRepository.findAllById(ids).stream()
+                .map(UserResponse::from)
+                .toList();
+    }
+
     public UserResponse updateProfile(String email, String fullName, String avatarUrl) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "User not found"));

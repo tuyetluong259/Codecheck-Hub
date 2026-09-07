@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 import com.codecheckhub.submission.dto.AnalyticsResponse;
 import com.codecheckhub.submission.dto.CompareResponse;
+import com.codecheckhub.submission.dto.StudentStatsResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -257,6 +258,65 @@ public class SubmissionService {
                 .student2Id(sub2.getStudentId())
                 .code2(sub2.getSourceCode())
                 .plagiarismScore(score)
+                .build();
+    }
+
+    public List<Submission> getStudentHistory(UUID studentId) {
+        return submissionRepository.findByStudentIdOrderBySubmittedAtDesc(studentId);
+    }
+
+    public StudentStatsResponse getStudentStats(UUID studentId) {
+        List<Submission> submissions = submissionRepository.findByStudentIdOrderBySubmittedAtDesc(studentId);
+        if (submissions.isEmpty()) {
+            return StudentStatsResponse.builder().build();
+        }
+
+        long total = submissions.size();
+        long accepted = submissions.stream().filter(s -> Submission.Status.ACCEPTED.equals(s.getStatus())).count();
+        long failed = submissions.stream().filter(s -> 
+            Submission.Status.WRONG_ANSWER.equals(s.getStatus()) || 
+            Submission.Status.RUNTIME_ERROR.equals(s.getStatus()) || 
+            Submission.Status.TIME_LIMIT.equals(s.getStatus()) || 
+            Submission.Status.MEMORY_LIMIT.equals(s.getStatus()) ||
+            Submission.Status.COMPILE_ERROR.equals(s.getStatus())
+        ).count();
+        long pending = submissions.stream().filter(s -> 
+            Submission.Status.PENDING.equals(s.getStatus()) || 
+            Submission.Status.RUNNING.equals(s.getStatus())
+        ).count();
+        long other = total - accepted - failed - pending;
+        double rate = (double) accepted / total * 100;
+
+        long problemsSolved = submissions.stream()
+                .filter(s -> Submission.Status.ACCEPTED.equals(s.getStatus()))
+                .map(Submission::getProblemId)
+                .distinct()
+                .count();
+
+        // Calculate average clean code score (if any)
+        List<UUID> subIds = submissions.stream().map(Submission::getId).collect(Collectors.toList());
+        List<QualityReport> reports = qualityReportRepository.findBySubmissionIdIn(subIds);
+        
+        // Mock clean code score as 100 - (bugs*5 + smells*2)
+        int totalScore = 0;
+        int count = 0;
+        for (QualityReport report : reports) {
+            int score = 100 - (report.getBugsCount() * 5) - (report.getCodeSmellsCount() * 2);
+            if (score < 0) score = 0;
+            totalScore += score;
+            count++;
+        }
+        int avgCleanCode = count > 0 ? totalScore / count : 100;
+
+        return StudentStatsResponse.builder()
+                .totalSubmissions(total)
+                .acceptedCount(accepted)
+                .failedCount(failed)
+                .pendingCount(pending)
+                .otherCount(other)
+                .acceptanceRate(rate)
+                .averageCleanCodeScore(avgCleanCode)
+                .totalProblemsSolved(problemsSolved)
                 .build();
     }
 }

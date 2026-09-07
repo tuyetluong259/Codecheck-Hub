@@ -47,20 +47,25 @@ export default function StudentProblems() {
   const [difficulty, setDifficulty] = useState("ALL");
 
   const [problems, setProblems] = useState([]);
+  const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProblems = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get('/problems/student');
-        setProblems(res.data);
+        const [resProbs, resStats] = await Promise.all([
+          api.get('/problems/student'),
+          api.get('/submissions/student/stats')
+        ]);
+        setProblems(resProbs.data);
+        setStatsData(resStats.data);
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    fetchProblems();
+    fetchData();
   }, []);
 
   return (
@@ -113,20 +118,22 @@ export default function StudentProblems() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
         <div className="space-y-4">
           <h2 className="text-4xl font-black text-slate-800 tracking-tight">My Submission Status</h2>
-          <ul className="space-y-2 text-xl text-slate-700">
-            <li className="flex items-center justify-between w-48"><span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500" /> Accepted</span><span>52.1%</span></li>
-            <li className="flex items-center justify-between w-48"><span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-rose-500" /> Failed</span><span>22.8%</span></li>
-            <li className="flex items-center justify-between w-48"><span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-400" /> Pending</span><span>13.9%</span></li>
-            <li className="flex items-center justify-between w-48"><span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-slate-300" /> Other</span><span>11.2%</span></li>
-          </ul>
+          {statsData && (
+            <ul className="space-y-2 text-xl text-slate-700">
+              <li className="flex items-center justify-between w-48"><span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500" /> Accepted</span><span>{statsData.totalSubmissions > 0 ? ((statsData.acceptedCount/statsData.totalSubmissions)*100).toFixed(1) : 0}%</span></li>
+              <li className="flex items-center justify-between w-48"><span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-rose-500" /> Failed</span><span>{statsData.totalSubmissions > 0 ? ((statsData.failedCount/statsData.totalSubmissions)*100).toFixed(1) : 0}%</span></li>
+              <li className="flex items-center justify-between w-48"><span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-400" /> Pending</span><span>{statsData.totalSubmissions > 0 ? ((statsData.pendingCount/statsData.totalSubmissions)*100).toFixed(1) : 0}%</span></li>
+              <li className="flex items-center justify-between w-48"><span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-slate-300" /> Other</span><span>{statsData.totalSubmissions > 0 ? ((statsData.otherCount/statsData.totalSubmissions)*100).toFixed(1) : 0}%</span></li>
+            </ul>
+          )}
           <div className="pt-4 text-lg text-emerald-700 font-black">
-            Total Solved: <span className="text-slate-800">12 / 50</span>
-            <div className="text-slate-700">Clean Code Score: A (92/100)</div>
+            Total Solved: <span className="text-slate-800">{statsData ? statsData.totalProblemsSolved : 0}</span>
+            <div className="text-slate-700">Clean Code Score: {statsData ? statsData.averageCleanCodeScore : 0}/100</div>
           </div>
         </div>
 
         <div className="flex justify-center">
-          <DonutChart accepted={52.1} failed={22.8} pending={13.9} other={11.2} />
+          {statsData && <DonutChart accepted={statsData.acceptedCount} failed={statsData.failedCount} pending={statsData.pendingCount} other={statsData.otherCount} />}
         </div>
       </div>
     </div>
