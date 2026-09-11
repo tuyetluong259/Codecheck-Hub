@@ -49,6 +49,7 @@ public class JudgeConsumer {
                     .totalCount(request.getTestCases() != null ? request.getTestCases().size() : 0)
                     .compileError("System Error: " + e.getMessage())
                     .results(new ArrayList<>())
+                    .isSubmit(request.isSubmit())
                     .build();
         }
 
@@ -89,6 +90,7 @@ public class JudgeConsumer {
                         .totalCount(request.getTestCases().size())
                         .compileError(compileError)
                         .results(testResults)
+                        .isSubmit(request.isSubmit())
                         .build();
             }
         }
@@ -141,13 +143,15 @@ public class JudgeConsumer {
 
         // Bước 3: SonarQube code review
         String sonarIssues = null;
-        try {
-            // Dùng submissionId làm projectKey định danh trên SonarQube
-            String projectKey = "submission_" + request.getSubmissionId();
-            sonarIssues = sonarQubeService.executeRealReview(
-                    request.getSourceCode(), request.getLanguage(), projectKey);
-        } catch (Exception e) {
-            log.warn("Code review failed: {}", e.getMessage());
+        if (request.isSubmit()) {
+            try {
+                // Dùng submissionId làm projectKey định danh trên SonarQube
+                String projectKey = "submission_" + request.getSubmissionId();
+                sonarIssues = sonarQubeService.executeRealReview(
+                        request.getSourceCode(), request.getLanguage(), projectKey);
+            } catch (Exception e) {
+                log.warn("Code review failed: {}", e.getMessage());
+            }
         }
 
         return JudgeResult.builder()
@@ -160,6 +164,7 @@ public class JudgeConsumer {
                 .compileError(compileError)
                 .sonarIssues(sonarIssues)
                 .results(testResults)
+                .isSubmit(request.isSubmit())
                 .build();
     }
 

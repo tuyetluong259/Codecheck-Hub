@@ -35,9 +35,10 @@ public class SubmissionController {
                 Submission.Language.valueOf(request.getLanguage()),
                 request.getTestCases(),
                 request.getTimeLimitMs(),
-                request.getMemoryLimitMb()
+                request.getMemoryLimitMb(),
+                request.isSubmit()
         );
-        return ResponseEntity.ok(submission);
+        return ResponseEntity.ok(submission != null ? submission : new Submission());
     }
 
     @GetMapping("/{id}")
@@ -138,6 +139,7 @@ public class SubmissionController {
         private String language;
         private int timeLimitMs = 2000;
         private int memoryLimitMb = 256;
+        private boolean isSubmit;
         private List<JudgeRequest.TestCaseData> testCases;
     }
 }

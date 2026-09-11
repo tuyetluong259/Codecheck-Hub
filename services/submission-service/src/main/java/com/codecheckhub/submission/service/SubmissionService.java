@@ -38,21 +38,26 @@ public class SubmissionService {
     private final SubmissionProducer producer;
     private final ObjectMapper objectMapper;
     private final PlagiarismService plagiarismService;
+    private final com.codecheckhub.submission.messaging.NotificationProducer notificationProducer;
 
     @Transactional
     public Submission submit(UUID problemId, UUID studentId, String code,
                              Submission.Language language,
                              List<JudgeRequest.TestCaseData> testCases,
-                             int timeLimitMs, int memoryLimitMb) {
+                             int timeLimitMs, int memoryLimitMb, boolean isSubmit) {
 
         Submission submission = Submission.builder()
+                .id(UUID.randomUUID()) // Always generate an ID for tracking
                 .problemId(problemId)
                 .studentId(studentId)
                 .sourceCode(code)
                 .language(language)
                 .status(Submission.Status.PENDING)
                 .build();
-        submission = submissionRepository.save(submission);
+        
+        if (isSubmit) {
+            submission = submissionRepository.save(submission);
+        }
 
         JudgeRequest request = JudgeRequest.builder()
                 .submissionId(submission.getId())
@@ -62,15 +67,19 @@ public class SubmissionService {
                 .language(language.name())
                 .timeLimitMs(timeLimitMs)
                 .memoryLimitMb(memoryLimitMb)
+                .isSubmit(isSubmit)
                 .testCases(testCases)
                 .build();
 
         producer.sendToJudge(request);
 
-        // BUG FIX: cập nhật status RUNNING sau khi enqueue thành công
-        submission.setStatus(Submission.Status.RUNNING);
-        submission = submissionRepository.save(submission);
-        log.info("Submission {} queued for judging", submission.getId());
+        if (isSubmit) {
+            submission.setStatus(Submission.Status.RUNNING);
+            submission = submissionRepository.save(submission);
+            log.info("Submission {} queued for judging", submission.getId());
+        } else {
+            log.info("Test run {} queued for judging", submission.getId());
+        }
 
         return submission;
     }
@@ -81,6 +90,30 @@ public class SubmissionService {
     @RabbitListener(queues = "${rabbitmq.queue.result}")
     public void handleJudgeResult(JudgeResult result) {
         log.info("Received judge result for submission {}", result.getSubmissionId());
+
+        if (!result.isSubmit()) {
+            // Test run mode: do not interact with DB, just send notification
+            Map<String, Object> notificationPayload = new java.util.HashMap<>();
+            notificationPayload.put("submissionId", result.getSubmissionId().toString());
+            notificationPayload.put("studentId", result.getStudentId() != null ? result.getStudentId().toString() : "");
+            notificationPayload.put("status", "TEST_RUN");
+            notificationPayload.put("overallStatus", result.getOverallStatus());
+            notificationPayload.put("passedCases", result.getPassedCount());
+            notificationPayload.put("totalCases", result.getTotalCount());
+            
+            long maxTime = result.getResults() != null ? result.getResults().stream().mapToLong(r -> r.getTimeMs() != null ? r.getTimeMs() : 0).max().orElse(0L) : 0L;
+            long maxMemory = result.getResults() != null ? result.getResults().stream().mapToLong(r -> r.getMemoryMb() != null ? r.getMemoryMb() : 0).max().orElse(0L) : 0L;
+            
+            notificationPayload.put("memoryConsumed", maxMemory);
+            notificationPayload.put("executionTime", maxTime);
+            if (result.getCompileError() != null) {
+                notificationPayload.put("errorDetails", result.getCompileError());
+            }
+            notificationPayload.put("testResults", result.getResults());
+            
+            notificationProducer.sendNotification(notificationPayload);
+            return;
+        }
 
         Submission submission = submissionRepository.findById(result.getSubmissionId())
                 .orElseThrow(() -> new RuntimeException("Submission not found: " + result.getSubmissionId()));
@@ -102,7 +135,6 @@ public class SubmissionService {
 
         if (result.getResults() != null) {
             List<SubmissionResult> submissionResults = result.getResults().stream().map(r -> {
-                // BUG FIX: null-safe status parsing — nếu status không hợp lệ default về RUNTIME_ERROR
                 Submission.Status tcStatus;
                 try {
                     tcStatus = Submission.Status.valueOf(r.getStatus());
@@ -122,9 +154,8 @@ public class SubmissionService {
                         .build();
             }).collect(Collectors.toList());
 
-            // BUG FIX: dùng removeAll + addAll để tránh lỗi với orphanRemoval và detached entities
             submission.getResults().clear();
-            submissionRepository.saveAndFlush(submission); // flush để orphanRemoval kích hoạt
+            submissionRepository.saveAndFlush(submission);
             submission.getResults().addAll(submissionResults);
         }
 
@@ -138,8 +169,27 @@ public class SubmissionService {
                 log.error("Plagiarism check failed for submission {}", submission.getId(), e);
             }
 
-            if (result.getSonarIssues() != null && !result.getSonarIssues().isEmpty()) {
-                try {
+        // Tạo payload notification gửi sang frontend
+        Map<String, Object> notificationPayload = new java.util.HashMap<>();
+        notificationPayload.put("submissionId", submission.getId().toString());
+        notificationPayload.put("studentId", submission.getStudentId().toString());
+        notificationPayload.put("problemId", submission.getProblemId().toString());
+        notificationPayload.put("status", submission.getStatus().name());
+        notificationPayload.put("score", submission.getScore());
+        
+        notificationPayload.put("overallStatus", result.getOverallStatus());
+        notificationPayload.put("passedCases", result.getPassedCount());
+        notificationPayload.put("totalCases", result.getTotalCount());
+        notificationPayload.put("memoryConsumed", submission.getMemoryUsed());
+        notificationPayload.put("executionTime", submission.getExecutionTime());
+        
+        if (result.getCompileError() != null) {
+            notificationPayload.put("errorDetails", result.getCompileError());
+        }
+
+        int sonarScore = 100;
+        if (result.getSonarIssues() != null && !result.getSonarIssues().isEmpty()) {
+            try {
                 List<java.util.Map<String, String>> issues = objectMapper.readValue(result.getSonarIssues(), new TypeReference<>() {});
                 int bugs = 0, smells = 0, vulnerabilities = 0;
                 for (java.util.Map<String, String> issue : issues) {
@@ -148,6 +198,7 @@ public class SubmissionService {
                     else if ("CODE_SMELL".equalsIgnoreCase(type)) smells++;
                     else if ("VULNERABILITY".equalsIgnoreCase(type)) vulnerabilities++;
                 }
+                sonarScore = Math.max(0, 100 - (bugs * 5) - (smells * 2));
                 QualityReport report = QualityReport.builder()
                         .submission(submission)
                         .bugsCount(bugs)
@@ -159,6 +210,10 @@ public class SubmissionService {
                 log.warn("Failed to parse sonar issues for submission {}: {}", submission.getId(), e.getMessage());
             }
         }
+        
+        notificationPayload.put("sonarScore", sonarScore);
+        
+        notificationProducer.sendNotification(notificationPayload);
     }
     }
 

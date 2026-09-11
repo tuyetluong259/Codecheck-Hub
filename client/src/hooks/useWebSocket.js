@@ -1,29 +1,58 @@
 import { useEffect, useRef } from 'react';
+import { Client } from '@stomp/stompjs';
 
-export const useWebSocket = (endpoint, onMessageReceived) => {
-  const socketRef = useRef(null);
+export const useWebSocket = (topic, onMessageReceived) => {
+  const clientRef = useRef(null);
+  const callbackRef = useRef(onMessageReceived);
 
   useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws';
-    const socket = new WebSocket(`${wsUrl}${endpoint}`);
-    socketRef.current = socket;
+    callbackRef.current = onMessageReceived;
+  }, [onMessageReceived]);
 
-    socket.onmessage = (event) => {
-      try {
-        onMessageReceived(JSON.parse(event.data));
-      } catch (e) {
-        onMessageReceived(event.data);
-      }
+  useEffect(() => {
+    // Bypass Gateway to debug
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8085/ws';
+    
+    const client = new Client({
+      brokerURL: wsUrl,
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+    });
+
+    client.onConnect = () => {
+      console.log('STOMP Connected to ' + topic);
+      client.subscribe(topic, (message) => {
+        if (message.body) {
+          try {
+            callbackRef.current(JSON.parse(message.body));
+          } catch (e) {
+            callbackRef.current(message.body);
+          }
+        }
+      });
     };
+
+    client.onStompError = (frame) => {
+      console.error('Broker reported error: ' + frame.headers['message']);
+      console.error('Additional details: ' + frame.body);
+    };
+
+    if (topic) {
+        client.activate();
+    }
+    clientRef.current = client;
 
     return () => {
-      if (socket.readyState === WebSocket.OPEN) socket.close();
+      if (clientRef.current) {
+        clientRef.current.deactivate();
+      }
     };
-  }, [endpoint, onMessageReceived]);
+  }, [topic]);
 
-  const sendMessage = (msg) => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(msg));
+  const sendMessage = (destination, msg) => {
+    if (clientRef.current?.connected) {
+      clientRef.current.publish({ destination, body: JSON.stringify(msg) });
     }
   };
 

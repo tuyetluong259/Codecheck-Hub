@@ -21,6 +21,7 @@ public class JudgeRequest implements Serializable {
     private String language;        // CPP, JAVA, PYTHON
     private int timeLimitMs;
     private int memoryLimitMb;
+    private boolean isSubmit;
     private List<TestCaseData> testCases;
 
     @Data

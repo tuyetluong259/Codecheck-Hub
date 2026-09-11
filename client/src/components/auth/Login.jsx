@@ -34,6 +34,10 @@ export default function Login() {
     } catch (err) {
       if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message);
+      } else if (err.message === 'Network Error') {
+        setError('Lỗi kết nối máy chủ. Hệ thống có thể đang khởi động lại, vui lòng thử lại sau giây lát!');
+      } else if (err.response && err.response.status >= 500) {
+        setError('Hệ thống đang bận hoặc đang khởi động lại (Lỗi máy chủ). Vui lòng thử lại sau!');
       } else {
         setError('Email hoặc Mật khẩu không chính xác!');
       }

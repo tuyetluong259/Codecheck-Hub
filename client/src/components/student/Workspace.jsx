@@ -11,13 +11,21 @@ export default function Workspace() {
   const [code, setCode] = useState("// Viết mã nguồn của bạn ở đây...\npublic class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        return new int[]{0, 1};\n    }\n}");
   const [consoleOutput, setConsoleOutput] = useState("Chưa có kết quả biên dịch. Hãy bấm nút Chạy thử hoặc Nộp bài.");
   const [loading, setLoading] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   const [problem, setProblem] = useState(null);
+  
+  const user = JSON.parse(localStorage.getItem('user'));
+  const studentId = user?.id || "";
 
   useEffect(() => {
     const fetchProblem = async () => {
       try {
         const res = await api.get(`/problems/${id}`);
-        setProblem(res.data);
+        // Fetch test cases to send to JudgeService (temp solution for this architecture)
+        const tcRes = await api.get(`/test-cases?problemId=${id}&isPublic=false`);
+        const problemData = res.data;
+        problemData.testCases = tcRes.data || [];
+        setProblem(problemData);
       } catch (err) {
         console.error("Failed to fetch problem", err);
       }
@@ -25,28 +33,51 @@ export default function Workspace() {
     if (id) fetchProblem();
   }, [id]);
 
-  useWebSocket("/submission-results", (message) => {
+  useWebSocket(studentId ? `/queue/student/${studentId}` : null, (message) => {
+    // Check if the message is for the current problem (if problemId is provided by backend)
+    if (message.problemId && message.problemId !== id) return;
+    
     setLoading(false);
-    if (message.status === "COMPLETED") {
-      setConsoleOutput(`[SUCCESS] Pass ${message.passedCases}/${message.totalCases} Test cases!\nRAM tiêu thụ: ${message.memoryConsumed}MB | Thời gian thực thi: ${message.executionTime}ms\nĐiểm đánh giá Clean Code SonarQube: ${message.sonarScore}/100.`);
+    
+    if (message.status === "TEST_RUN") {
+      if (message.overallStatus === "ACCEPTED") {
+        setConsoleOutput(`[CHẠY THỬ THÀNH CÔNG] Pass ${message.passedCases}/${message.totalCases} Test cases!\nRAM tiêu thụ: ${message.memoryConsumed}MB | Thời gian thực thi: ${message.executionTime}ms`);
+      } else if (message.overallStatus === "COMPILE_ERROR") {
+        setConsoleOutput(`[LỖI BIÊN DỊCH]\n${message.errorDetails || "Lỗi không xác định"}`);
+      } else {
+        setConsoleOutput(`[CHẠY THỬ THẤT BẠI] Status: ${message.overallStatus}\nPass ${message.passedCases}/${message.totalCases} Test cases.\nLỗi: ${message.errorDetails || "Xem chi tiết ở Console"}`);
+      }
     } else {
-      setConsoleOutput(`[COMPILE ERROR] Lỗi biên dịch: ${message.errorDetails}`);
+      // It's a SUBMIT result
+      if (message.overallStatus === "ACCEPTED") {
+        setIsLocked(true); // Lock the editor!
+        setConsoleOutput(`[NỘP BÀI THÀNH CÔNG] Pass ${message.passedCases}/${message.totalCases} Test cases!\nRAM tiêu thụ: ${message.memoryConsumed}MB | Thời gian thực thi: ${message.executionTime}ms\nĐiểm đánh giá Clean Code SonarQube: ${message.sonarScore}/100.`);
+      } else if (message.overallStatus === "COMPILE_ERROR") {
+        setConsoleOutput(`[LỖI BIÊN DỊCH]\n${message.errorDetails || "Lỗi không xác định"}`);
+      } else {
+        setConsoleOutput(`[NỘP BÀI THẤT BẠI] Status: ${message.overallStatus}\nPass ${message.passedCases}/${message.totalCases} Test cases.\nLỗi: ${message.errorDetails || "Không có"}`);
+      }
     }
   });
 
   const handleSubmit = async (isSubmit) => {
+    if (isLocked) return;
     setLoading(true);
-    setConsoleOutput("Đang gửi code lên hàng đợi RabbitMQ... Chờ Docker Sandbox thực thi...");
+    setConsoleOutput(isSubmit ? "Đang gửi bài làm... Hệ thống đang chấm điểm và phân tích SonarQube..." : "Đang gửi code chạy thử... Vui lòng chờ...");
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
+      const allTestCases = problem?.testCases || [];
+      const testCasesToSend = isSubmit ? allTestCases : allTestCases.filter(tc => !tc.isHidden);
+
       const payload = {
         problemId: id,
-        studentId: user?.id,
+        studentId: studentId,
         code,
         language,
         timeLimitMs: problem?.timeLimitMs || 2000,
         memoryLimitMb: problem?.memoryLimitMb || 256,
-        testCases: []
+        submit: isSubmit,
+        isSubmit: isSubmit,
+        testCases: testCasesToSend
       };
       // In a real scenario test cases would be fetched securely from backend
       await api.post("/submissions", payload);
@@ -73,18 +104,22 @@ export default function Workspace() {
         </div>
         <div className="flex space-x-3">
           <button 
-            disabled={loading} onClick={() => handleSubmit(false)}
-            className="px-4 py-1.5 border border-slate-200 hover:bg-slate-50 font-bold text-xs rounded transition flex items-center space-x-1.5 text-slate-700"
+            disabled={loading || isLocked} onClick={() => handleSubmit(false)}
+            className={`px-4 py-1.5 border border-slate-200 font-bold text-xs rounded transition flex items-center space-x-1.5 text-slate-700 ${isLocked ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'}`}
           >
             <Play className="h-3.5 w-3.5 text-slate-500" />
             <span>Chạy thử</span>
           </button>
           <button 
-            disabled={loading} onClick={() => handleSubmit(true)}
-            className="px-4 py-1.5 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-xs rounded transition flex items-center space-x-1.5 shadow"
+            disabled={loading || isLocked} onClick={() => {
+              if (window.confirm("Bạn có chắc chắn nộp bài không? Sau khi nộp sẽ không được sửa nữa.")) {
+                handleSubmit(true);
+              }
+            }}
+            className={`px-4 py-1.5 bg-[#1d4ed8] text-white font-bold text-xs rounded transition flex items-center space-x-1.5 shadow ${isLocked ? 'opacity-50 cursor-not-allowed bg-slate-500' : 'hover:bg-[#1e40af]'}`}
           >
             <Send className="h-3.5 w-3.5" />
-            <span>{loading ? "Đang chấm..." : "Nộp bài làm"}</span>
+            <span>{isLocked ? "Đã nộp" : loading ? "Đang chấm..." : "Nộp bài làm"}</span>
           </button>
         </div>
       </div>
@@ -106,7 +141,7 @@ export default function Workspace() {
           <div className="flex-1 relative border-b border-slate-200">
             <MonacoEditor 
               height="100%" language={language.toLowerCase()} theme="vs-dark" value={code} onChange={setCode}
-              options={{ fontSize: 13, minimap: { enabled: false }, automaticLayout: true }}
+              options={{ fontSize: 13, minimap: { enabled: false }, automaticLayout: true, readOnly: isLocked }}
             />
           </div>
           <div className="h-44 bg-slate-950 flex flex-col overflow-hidden">

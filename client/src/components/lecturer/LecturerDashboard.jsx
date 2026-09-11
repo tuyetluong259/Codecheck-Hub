@@ -103,21 +103,7 @@ export default function LecturerDashboard() {
           <div className="space-y-4">
             <h3 className="text-sm font-black uppercase tracking-[0.12em] text-slate-600">Tóm tắt tiến độ chấm bài</h3>
             <div className="space-y-3.5 mt-2">
-              <div className="flex justify-between items-center text-xs font-bold text-slate-600">
-                <span>Cấu trúc dữ liệu & Giải thuật (Bài 3)</span>
-                <span>80% (36/45 SV)</span>
-              </div>
-              <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#1d4ed8] h-full rounded-full" style={{ width: "80%" }}></div>
-              </div>
-
-              <div className="flex justify-between items-center text-xs font-bold text-slate-600">
-                <span>OOP Java - Nhóm 1 (Bài tập mẫu)</span>
-                <span>42% (21/50 SV)</span>
-              </div>
-              <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                <div className="bg-emerald-500 h-full rounded-full" style={{ width: "42%" }}></div>
-              </div>
+              <div className="py-4 text-center text-slate-500 font-semibold text-sm">Chưa có dữ liệu tiến độ chấm bài</div>
             </div>
           </div>
           <Link to="/lecturer/grades" className="block text-center w-full py-3.5 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-xs rounded-xl shadow-lg mt-8 uppercase tracking-[0.12em] transition">

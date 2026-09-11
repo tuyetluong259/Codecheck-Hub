@@ -9,25 +9,21 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * BUG FIX: notification-service cần RabbitMQ config riêng để
- * deserialize message từ JSON sang Map<String, Object>
- */
 @Configuration
 public class RabbitMQConfig {
 
-    @Value("${rabbitmq.queue.result}")
-    private String resultQueue;
+    @Value("${rabbitmq.queue.notification}")
+    private String notificationQueue;
 
     @Value("${rabbitmq.exchange}")
     private String exchange;
 
-    @Value("${rabbitmq.routing-key.result}")
-    private String resultRoutingKey;
+    @Value("${rabbitmq.routing-key.notification}")
+    private String notificationRoutingKey;
 
     @Bean
-    public Queue notificationResultQueue() {
-        return QueueBuilder.durable(resultQueue).build();
+    public Queue notificationQueue() {
+        return QueueBuilder.durable(notificationQueue).build();
     }
 
     @Bean
@@ -36,11 +32,8 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding notificationResultBinding(Queue notificationResultQueue,
-                                              DirectExchange notificationExchange) {
-        return BindingBuilder.bind(notificationResultQueue)
-                .to(notificationExchange)
-                .with(resultRoutingKey);
+    public Binding notificationBinding(Queue notificationQueue, DirectExchange notificationExchange) {
+        return BindingBuilder.bind(notificationQueue).to(notificationExchange).with(notificationRoutingKey);
     }
 
     @Bean

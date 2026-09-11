@@ -131,7 +131,9 @@ export default function GradingAndAnalytics() {
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Pass Rate</div>
-          <div className="mt-2 text-3xl font-black text-slate-800">{analytics?.acceptanceRate || 0}%</div>
+          <div className="mt-2 text-3xl font-black text-slate-800">
+            {analytics?.acceptanceRate !== undefined ? Number(analytics.acceptanceRate).toFixed(2) : 0}%
+          </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Code Smells</div>

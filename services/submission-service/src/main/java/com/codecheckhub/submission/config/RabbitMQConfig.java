@@ -3,8 +3,11 @@ package com.codecheckhub.submission.config;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.DefaultClassMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +30,12 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.routing-key.result}")
     private String resultRoutingKey;
 
+    @Value("${rabbitmq.queue.notification}")
+    private String notificationQueue;
+
+    @Value("${rabbitmq.routing-key.notification}")
+    private String notificationRoutingKey;
+
     @Bean
     public Queue judgeQueue() {
         return QueueBuilder.durable(judgeQueue).build();
@@ -35,6 +44,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue resultQueue() {
         return QueueBuilder.durable(resultQueue).build();
+    }
+
+    @Bean
+    public Queue notificationQueue() {
+        return QueueBuilder.durable(notificationQueue).build();
     }
 
     @Bean
@@ -53,8 +67,22 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Binding notificationBinding(Queue notificationQueue, DirectExchange exchange) {
+        return BindingBuilder.bind(notificationQueue).to(exchange).with(notificationRoutingKey);
+    }
+
+    @Bean
     public MessageConverter messageConverter() {
-        return new Jackson2JsonMessageConverter();
+        Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();
+        DefaultClassMapper classMapper = new DefaultClassMapper();
+        classMapper.setTrustedPackages("*");
+        
+        Map<String, Class<?>> idClassMapping = new HashMap<>();
+        idClassMapping.put("com.codecheckhub.judge.messaging.JudgeResult", com.codecheckhub.submission.messaging.JudgeResult.class);
+        classMapper.setIdClassMapping(idClassMapping);
+        
+        converter.setClassMapper(classMapper);
+        return converter;
     }
 
     @Bean

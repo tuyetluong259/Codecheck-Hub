@@ -16,6 +16,7 @@ import java.util.UUID;
 public class JudgeResult implements Serializable {
     private UUID submissionId;
     private UUID studentId;
+    private boolean isSubmit;
     private String overallStatus;       // ACCEPTED, WRONG_ANSWER, etc.
     private Integer score;
     private Integer passedCount;

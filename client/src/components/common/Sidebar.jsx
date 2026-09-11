@@ -64,18 +64,27 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t border-[#cfe1ff] bg-[#dfeef7] p-4">
-        <div className="flex items-center gap-3 rounded-xl border border-[#bfe0ff] bg-white/40 px-3 py-3">
+        <Link to="/profile" className="flex items-center gap-3 rounded-xl border border-[#bfe0ff] bg-white/40 px-3 py-3 hover:bg-white/60 transition">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1d9df2] text-sm font-black text-white">
             {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
           </div>
-          <div className="text-lg font-bold text-slate-800">{user?.fullName || 'Nguyen Van'}</div>
-        </div>
-        <Link
-          to="/login"
-          className="mt-4 flex w-full items-center justify-center rounded-xl border border-[#7db5ff] bg-white/70 px-4 py-3 text-xl font-black text-[#1d4ed8] hover:bg-white"
-        >
-          Logout
+          <div className="text-lg font-bold text-slate-800">{user?.fullName || 'Người dùng'}</div>
         </Link>
+        <div className="mt-4 flex gap-2">
+          <Link
+            to="/settings"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#7db5ff] bg-white/70 px-4 py-2 text-sm font-black text-slate-600 hover:bg-white"
+          >
+            <Settings className="h-4 w-4" />
+            Cài đặt
+          </Link>
+          <Link
+            to="/login"
+            className="flex flex-1 items-center justify-center rounded-xl border border-[#7db5ff] bg-white/70 px-4 py-2 text-sm font-black text-rose-600 hover:bg-white"
+          >
+            Đăng xuất
+          </Link>
+        </div>
       </div>
     </aside>
   );

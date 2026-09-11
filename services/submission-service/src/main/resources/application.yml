@@ -30,10 +30,12 @@ rabbitmq:
   queue:
     judge: judge.queue
     result: result.queue
+    notification: notification.queue
   exchange: codecheckHub.exchange
   routing-key:
     judge: judge.routing.key
     result: result.routing.key
+    notification: notification.routing.key
 
 course:
   service:

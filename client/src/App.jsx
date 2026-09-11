@@ -33,6 +33,9 @@ import AdminGlobalProblemBank from './components/admin/AdminGlobalProblemBank';
 import AdminSystemAuditLogs from './components/admin/AdminSystemAuditLogs';
 import AdminSystemSettings from './components/admin/AdminSystemSettings';
 
+import Profile from './components/common/Profile';
+import Settings from './components/common/Settings';
+
 const Layout = ({ children }) => (
   <div className="flex h-screen flex-col bg-[#dfeef7] text-slate-700">
     <Navbar />
@@ -67,6 +70,10 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-code" element={<VerifyCode />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Common protected routes */}
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
           <Route path="/" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
           <Route path="/student/classes" element={<ProtectedRoute allowedRoles={['STUDENT']}><StudentClasses /></ProtectedRoute>} />

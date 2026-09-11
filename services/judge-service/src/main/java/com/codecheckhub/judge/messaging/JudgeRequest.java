@@ -14,6 +14,7 @@ public class JudgeRequest implements Serializable {
     private String language;
     private int timeLimitMs;
     private int memoryLimitMb;
+    private boolean isSubmit;
     private List<TestCaseData> testCases;
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor

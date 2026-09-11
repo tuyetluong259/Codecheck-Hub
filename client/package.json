@@ -10,11 +10,13 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "@stomp/stompjs": "^7.3.0",
     "axios": "^1.19.0",
     "lucide-react": "^1.33.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
+    "sockjs-client": "^1.6.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

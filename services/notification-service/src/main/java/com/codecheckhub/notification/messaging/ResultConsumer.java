@@ -20,8 +20,8 @@ public class ResultConsumer {
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
 
-    @Value("${rabbitmq.queue.result}")
-    private String resultQueue;
+    @Value("${rabbitmq.queue.notification}")
+    private String notificationQueue;
 
     /**
      * Consume kết quả từ RabbitMQ và push qua WebSocket đến client
@@ -30,7 +30,7 @@ public class ResultConsumer {
      * BUG FIX: nhận Map<String,Object> trực tiếp — Jackson2JsonMessageConverter
      * trong notification-service cần được config (xem bên dưới)
      */
-    @RabbitListener(queues = "${rabbitmq.queue.result}")
+    @RabbitListener(queues = "${rabbitmq.queue.notification}")
     public void handleResult(Map<String, Object> result) {
         try {
             if (result == null || !result.containsKey("submissionId")) {
@@ -53,19 +53,20 @@ public class ResultConsumer {
                 
                 // 1. Lưu vào Database
                 String status = result.containsKey("status") ? result.get("status").toString() : "UNKNOWN";
-                String message = "Your submission for " + submissionId + " was graded: " + status;
-                if (result.containsKey("score")) {
-                    message += ". Score: " + result.get("score");
+                if (!"TEST_RUN".equals(status)) {
+                    String message = "Your submission for " + submissionId + " was graded: " + status;
+                    if (result.containsKey("score")) {
+                        message += ". Score: " + result.get("score");
+                    }
+                    Notification notif = notificationService.saveNotification(
+                            studentId,
+                            "SUBMISSION_RESULT",
+                            "Submission Graded",
+                            message
+                    );
+                    // Add the notification ID to the payload for the frontend
+                    result.put("notificationId", notif.getId());
                 }
-                Notification notif = notificationService.saveNotification(
-                        studentId,
-                        "SUBMISSION_RESULT",
-                        "Submission Graded",
-                        message
-                );
-                
-                // Add the notification ID to the payload for the frontend
-                result.put("notificationId", notif.getId());
 
                 // 2. Push qua WebSocket
                 messagingTemplate.convertAndSend(

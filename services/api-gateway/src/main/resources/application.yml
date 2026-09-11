@@ -68,11 +68,11 @@ spring:
 
         # Notification WebSocket route
         - id: ws-route
-          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
+          uri: ws://${NOTIFICATION_SERVICE_HOST:notification-service}:${NOTIFICATION_SERVICE_PORT:8085}
           predicates:
             - Path=/api/ws/**
           filters:
-            - RewritePath=/api/ws/(?<remaining>.*), /ws/${remaining}
+            - RewritePath=/api/ws(?<remaining>.*), /ws${remaining}
 
         # Health check routes (không cần auth)
         - id: health-identity
