@@ -22,7 +22,7 @@ export default function StudentDashboard() {
         classes = classes.slice(0, 3).map(c => ({
           id: c.id,
           name: c.name,
-          progress: 0,
+          progress: Math.round(c.progress || 0),
           lastActive: "Gần đây"
         }));
         setRecentClasses(classes);

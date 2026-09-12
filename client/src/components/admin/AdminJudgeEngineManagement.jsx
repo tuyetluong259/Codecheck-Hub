@@ -5,11 +5,19 @@ import api from "../../api/axios";
 export default function AdminJudgeEngineManagement() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [maxCpu, setMaxCpu] = useState(1);
-  const [maxRam, setRam] = useState(512);
+  const [savingSettings, setSavingSettings] = useState(false);
+  
+  // Judge Config State
+  const [judgeConfig, setJudgeConfig] = useState({
+    JUDGE_DEFAULT_CPU: 1,
+    JUDGE_TIMEOUT: 2.0,
+    JUDGE_MAX_RAM: 512,
+    JUDGE_MAX_OUTPUT: 4
+  });
 
   useEffect(() => {
     fetchMetrics();
+    fetchSettings();
     const interval = setInterval(fetchMetrics, 10000);
     return () => clearInterval(interval);
   }, []);
@@ -20,8 +28,47 @@ export default function AdminJudgeEngineManagement() {
       setMetrics(res.data.data);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/settings');
+      const configs = res.data.data || [];
+      const cpuConfig = configs.find(c => c.configKey === 'JUDGE_DEFAULT_CPU');
+      const timeoutConfig = configs.find(c => c.configKey === 'JUDGE_TIMEOUT');
+      const ramConfig = configs.find(c => c.configKey === 'JUDGE_MAX_RAM');
+      const outputConfig = configs.find(c => c.configKey === 'JUDGE_MAX_OUTPUT');
+      
+      setJudgeConfig({
+        JUDGE_DEFAULT_CPU: cpuConfig ? parseFloat(cpuConfig.configValue) : 1,
+        JUDGE_TIMEOUT: timeoutConfig ? parseFloat(timeoutConfig.configValue) : 2.0,
+        JUDGE_MAX_RAM: ramConfig ? parseInt(ramConfig.configValue) : 512,
+        JUDGE_MAX_OUTPUT: outputConfig ? parseInt(outputConfig.configValue) : 4
+      });
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      setSavingSettings(true);
+      await api.put('/settings', {
+        JUDGE_DEFAULT_CPU: judgeConfig.JUDGE_DEFAULT_CPU.toString(),
+        JUDGE_TIMEOUT: judgeConfig.JUDGE_TIMEOUT.toString(),
+        JUDGE_MAX_RAM: judgeConfig.JUDGE_MAX_RAM.toString(),
+        JUDGE_MAX_OUTPUT: judgeConfig.JUDGE_MAX_OUTPUT.toString()
+      });
+      alert("Đã lưu chính sách chạy code thành công!");
+    } catch (err) {
+      alert("Lỗi khi lưu chính sách chạy code!");
+      console.error(err);
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -50,16 +97,30 @@ export default function AdminJudgeEngineManagement() {
               Trạng thái: {isHealthy ? 'Healthy (Nodes Ready)' : 'High Load (Cảnh báo tài nguyên)'} - RAM {usedMemPercent}%
             </div>
           )}
-          <button className="rounded-xl border border-[#7db5ff] bg-white px-5 py-2.5 text-sm font-bold text-[#1d4ed8] hover:bg-[#eef5ff] transition">Lưu Chính Sách Sandbox</button>
+          <button onClick={handleSaveSettings} disabled={savingSettings} className="rounded-xl border border-[#7db5ff] bg-white px-5 py-2.5 text-sm font-bold text-[#1d4ed8] hover:bg-[#eef5ff] transition disabled:opacity-50">
+            {savingSettings ? "Đang lưu..." : "Lưu Chính Sách Sandbox"}
+          </button>
         </div>
 
         <div className="mt-6 rounded-xl border border-slate-200 bg-[#f8fbff] p-6">
           <h3 className="text-xl font-black tracking-tight text-slate-800 uppercase">CHÍNH SÁCH CHẠY CODE GLOBAL</h3>
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700 border border-slate-100 shadow-sm">Default CPU Limit: <span className="font-bold">1 Core</span></div>
-            <div className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700 border border-slate-100 shadow-sm">Execution Timeout: <span className="font-bold">2.0 seconds</span></div>
-            <div className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700 border border-slate-100 shadow-sm">Max Memory (RAM): <span className="font-bold">512 MB</span></div>
-            <div className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700 border border-slate-100 shadow-sm">Max Output Size: <span className="font-bold">4 MB</span></div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Default CPU Limit (Core)</label>
+              <input type="number" step="0.5" value={judgeConfig.JUDGE_DEFAULT_CPU} onChange={e => setJudgeConfig({...judgeConfig, JUDGE_DEFAULT_CPU: e.target.value})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 focus:border-[#1d4ed8] focus:outline-none" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Execution Timeout (s)</label>
+              <input type="number" step="0.5" value={judgeConfig.JUDGE_TIMEOUT} onChange={e => setJudgeConfig({...judgeConfig, JUDGE_TIMEOUT: e.target.value})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 focus:border-[#1d4ed8] focus:outline-none" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Max Memory (MB)</label>
+              <input type="number" step="128" value={judgeConfig.JUDGE_MAX_RAM} onChange={e => setJudgeConfig({...judgeConfig, JUDGE_MAX_RAM: e.target.value})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 focus:border-[#1d4ed8] focus:outline-none" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Max Output Size (MB)</label>
+              <input type="number" step="1" value={judgeConfig.JUDGE_MAX_OUTPUT} onChange={e => setJudgeConfig({...judgeConfig, JUDGE_MAX_OUTPUT: e.target.value})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 focus:border-[#1d4ed8] focus:outline-none" />
+            </div>
           </div>
         </div>
       </div>

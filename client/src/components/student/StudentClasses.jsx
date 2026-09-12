@@ -15,7 +15,7 @@ export default function StudentClasses() {
       const formattedClasses = res.data.map(c => ({
         ...c,
         lecturer: c.teacherName || "Giảng viên",
-        progress: 0
+        progress: Math.round(c.progress || 0)
       }));
       setClasses(formattedClasses);
     } catch (err) {

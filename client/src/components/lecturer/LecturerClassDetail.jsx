@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
-import { PlusCircle, Eye, Edit, Trash2, Calendar, FileText, Upload, Download, Settings, Users, FileSpreadsheet } from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { PlusCircle, Eye, Edit, Trash2, Calendar, FileText, Upload, Download, Settings, Users, FileSpreadsheet, ArrowLeft } from "lucide-react";
 import api from "../../api/axios";
 import * as XLSX from "xlsx";
 
@@ -11,13 +11,14 @@ export default function LecturerClassDetail() {
   const [classMembers, setClassMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const navigate = useNavigate();
 
-  // Form states for settings
   const [settings, setSettings] = useState({
     name: "",
     description: "",
     syllabus: "",
     passingCriteria: "",
+    passingCriteriaFile: "",
     allowJoinByCode: false
   });
   const [savingSettings, setSavingSettings] = useState(false);
@@ -39,6 +40,7 @@ export default function LecturerClassDetail() {
         description: resInfo.data.description || "",
         syllabus: resInfo.data.syllabus || "",
         passingCriteria: resInfo.data.passingCriteria || "",
+        passingCriteriaFile: resInfo.data.passingCriteriaFile || "",
         allowJoinByCode: resInfo.data.allowJoinByCode || false
       });
       setClassProblems(resProbs.data);
@@ -53,6 +55,17 @@ export default function LecturerClassDetail() {
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettings({ ...settings, passingCriteriaFile: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSaveSettings = async () => {
     try {
@@ -138,6 +151,9 @@ export default function LecturerClassDetail() {
       <div className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
+            <button onClick={() => navigate(-1)} className="p-1 rounded hover:bg-slate-100 text-slate-500 transition mr-2" title="Quay lại">
+              <ArrowLeft className="h-4 w-4" />
+            </button>
             <span className="rounded-md bg-[#edf5ff] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#1d4ed8]">{classInfo.code}</span>
             <span className="text-xs font-bold text-slate-500">Giảng viên: <span className="text-slate-800">{classInfo.teacherName}</span></span>
           </div>
@@ -167,6 +183,13 @@ export default function LecturerClassDetail() {
             <div className="prose prose-slate max-w-none text-sm text-slate-700 whitespace-pre-wrap">
               {classInfo.passingCriteria || "Chưa có yêu cầu qua môn."}
             </div>
+            {classInfo.passingCriteriaFile && (
+              <div className="mt-4">
+                <a href={classInfo.passingCriteriaFile} download="Yeu_cau_qua_mon.pdf" className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600 hover:bg-emerald-100">
+                  <Download className="h-4 w-4" /> Tải file đính kèm (PDF)
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -191,6 +214,11 @@ export default function LecturerClassDetail() {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Yêu cầu qua môn</label>
                 <textarea rows="3" value={settings.passingCriteria} onChange={e => setSettings({...settings, passingCriteria: e.target.value})} className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold focus:border-[#1d4ed8] focus:outline-none" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">File đính kèm (Yêu cầu qua môn)</label>
+                <input type="file" accept=".pdf" onChange={handleFileUpload} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                {settings.passingCriteriaFile && <span className="text-xs text-emerald-600 font-semibold mt-2 inline-block">Đã đính kèm 1 file PDF.</span>}
               </div>
               <div className="flex items-center gap-3">
                 <input type="checkbox" id="allowJoin" checked={settings.allowJoinByCode} onChange={e => setSettings({...settings, allowJoinByCode: e.target.checked})} className="h-4 w-4 rounded border-slate-300 text-[#1d4ed8] focus:ring-[#1d4ed8]" />

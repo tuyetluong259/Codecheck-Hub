@@ -38,6 +38,9 @@ public class Course {
     @Column(columnDefinition = "TEXT")
     private String passingCriteria;
 
+    @Column(columnDefinition = "TEXT")
+    private String passingCriteriaFile;
+
     @Column(nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
     private boolean allowJoinByCode = false;

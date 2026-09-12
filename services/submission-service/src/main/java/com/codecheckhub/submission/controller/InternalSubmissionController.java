@@ -20,4 +20,19 @@ public class InternalSubmissionController {
     public ResponseEntity<AnalyticsResponse> getAnalytics(@RequestBody List<UUID> problemIds) {
         return ResponseEntity.ok(submissionService.getAnalytics(problemIds));
     }
+
+    @GetMapping("/student/{studentId}/stats")
+    public ResponseEntity<com.codecheckhub.submission.dto.StudentStatsResponse> getStudentStats(@PathVariable UUID studentId) {
+        return ResponseEntity.ok(submissionService.getStudentStats(studentId));
+    }
+
+    @GetMapping("/student/{studentId}/problem-statuses")
+    public ResponseEntity<java.util.Map<UUID, String>> getStudentProblemStatuses(@PathVariable UUID studentId) {
+        return ResponseEntity.ok(submissionService.getStudentProblemStatuses(studentId));
+    }
+
+    @PostMapping("/recent")
+    public ResponseEntity<List<com.codecheckhub.submission.entity.Submission>> getRecentSubmissions(@RequestBody List<UUID> problemIds) {
+        return ResponseEntity.ok(submissionService.getRecentSubmissions(problemIds));
+    }
 }

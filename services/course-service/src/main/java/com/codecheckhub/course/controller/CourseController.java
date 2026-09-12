@@ -100,6 +100,12 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getDashboardStats(UUID.fromString(teacherId)));
     }
 
+    @GetMapping("/lecturer/recent-activities")
+    @Operation(summary = "Get recent activities for current lecturer")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getRecentActivities(@RequestHeader("X-User-Id") String teacherId) {
+        return ResponseEntity.ok(courseService.getRecentActivities(UUID.fromString(teacherId)));
+    }
+
     @GetMapping("/student/dashboard-stats")
     @Operation(summary = "Get dashboard stats for current student")
     public ResponseEntity<DashboardStatsResponse> getStudentDashboardStats(@RequestHeader("X-User-Id") String studentId) {

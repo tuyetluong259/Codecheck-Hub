@@ -53,6 +53,7 @@ public class SubmissionService {
                 .sourceCode(code)
                 .language(language)
                 .status(Submission.Status.PENDING)
+                .submittedAt(LocalDateTime.now())
                 .build();
         
         if (isSubmit) {
@@ -320,6 +321,24 @@ public class SubmissionService {
         return submissionRepository.findByStudentIdOrderBySubmittedAtDesc(studentId);
     }
 
+    public java.util.Map<UUID, String> getStudentProblemStatuses(UUID studentId) {
+        List<Submission> history = submissionRepository.findByStudentIdOrderBySubmittedAtDesc(studentId);
+        java.util.Map<UUID, String> statuses = new java.util.HashMap<>();
+        for (Submission sub : history) {
+            // Because it's ordered by desc, the first status we see is the latest for that problem
+            if (!statuses.containsKey(sub.getProblemId())) {
+                statuses.put(sub.getProblemId(), sub.getStatus().name());
+            } else {
+                // If it's ACCEPTED, we should keep ACCEPTED even if a later one failed (or depending on logic)
+                // usually we just want the highest status. Let's say if it ever was ACCEPTED, keep it.
+                if ("ACCEPTED".equals(sub.getStatus().name())) {
+                    statuses.put(sub.getProblemId(), "ACCEPTED");
+                }
+            }
+        }
+        return statuses;
+    }
+
     public StudentStatsResponse getStudentStats(UUID studentId) {
         List<Submission> submissions = submissionRepository.findByStudentIdOrderBySubmittedAtDesc(studentId);
         if (submissions.isEmpty()) {
@@ -373,5 +392,12 @@ public class SubmissionService {
                 .averageCleanCodeScore(avgCleanCode)
                 .totalProblemsSolved(problemsSolved)
                 .build();
+    }
+
+    public List<Submission> getRecentSubmissions(List<UUID> problemIds) {
+        if (problemIds == null || problemIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return submissionRepository.findTop10ByProblemIdInOrderBySubmittedAtDesc(problemIds);
     }
 }

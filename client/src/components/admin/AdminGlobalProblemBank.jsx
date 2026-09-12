@@ -26,9 +26,14 @@ export default function AdminGlobalProblemBank() {
   };
 
   const handleApprove = async (id, approved) => {
-    // Note: To actually approve, we need a PUT endpoint. Since we don't have it yet, this is simulated on frontend for now.
-    setProblems(problems.map(p => p.id === id ? { ...p, published: approved } : p));
-    alert(approved ? "Đã duyệt bài tập!" : "Đã từ chối bài tập!");
+    try {
+      await api.put(`/problems/${id}/publish?published=${approved}`);
+      setProblems(problems.map(p => p.id === id ? { ...p, published: approved } : p));
+      alert(approved ? "Đã duyệt bài tập!" : "Đã từ chối bài tập!");
+    } catch (err) {
+      alert("Lỗi khi duyệt bài tập!");
+      console.error(err);
+    }
   };
 
   const filteredProblems = problems.filter(p => {

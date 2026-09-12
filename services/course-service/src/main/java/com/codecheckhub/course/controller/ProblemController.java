@@ -45,8 +45,23 @@ public class ProblemController {
 
     @GetMapping("/student")
     @Operation(summary = "Get all problems for current student")
-    public ResponseEntity<List<Problem>> getStudentProblems(@RequestHeader("X-User-Id") String studentId) {
+    public ResponseEntity<List<com.codecheckhub.course.dto.StudentProblemResponse>> getStudentProblems(@RequestHeader("X-User-Id") String studentId) {
         return ResponseEntity.ok(problemService.getProblemsByStudentId(UUID.fromString(studentId)));
+    }
+
+    @GetMapping("/student/course/{courseId}")
+    @Operation(summary = "Get problems for current student by course ID")
+    public ResponseEntity<List<com.codecheckhub.course.dto.StudentProblemResponse>> getStudentProblemsByCourse(
+            @PathVariable UUID courseId,
+            @RequestHeader("X-User-Id") String studentId) {
+        List<com.codecheckhub.course.dto.StudentProblemResponse> allProblems = problemService.getProblemsByStudentId(UUID.fromString(studentId));
+        List<Problem> courseProblems = problemService.getProblemsByCourseId(courseId);
+        List<UUID> courseProblemIds = courseProblems.stream().map(Problem::getId).toList();
+        
+        List<com.codecheckhub.course.dto.StudentProblemResponse> filtered = allProblems.stream()
+                .filter(p -> courseProblemIds.contains(p.getId()))
+                .toList();
+        return ResponseEntity.ok(filtered);
     }
 
     @GetMapping("/{id}")
@@ -64,5 +79,17 @@ public class ProblemController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only teachers or admins can create problems");
         }
         return ResponseEntity.ok(problemService.createProblem(request));
+    }
+
+    @PutMapping("/{id}/publish")
+    @Operation(summary = "Publish or unpublish a problem (Admin only)")
+    public ResponseEntity<Problem> updateProblemPublishStatus(
+            @PathVariable UUID id,
+            @RequestParam boolean published,
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role) {
+        if (!"ADMIN".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can perform this action");
+        }
+        return ResponseEntity.ok(problemService.updateProblemPublishStatus(id, published));
     }
 }

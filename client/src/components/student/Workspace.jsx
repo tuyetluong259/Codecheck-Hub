@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { Play, Send, Terminal } from "lucide-react";
 import api from "../../api/axios";
@@ -13,6 +13,7 @@ export default function Workspace() {
   const [loading, setLoading] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [problem, setProblem] = useState(null);
+  const navigate = useNavigate();
   
   const user = JSON.parse(localStorage.getItem('user'));
   const studentId = user?.id || "";
@@ -26,6 +27,15 @@ export default function Workspace() {
         const problemData = res.data;
         problemData.testCases = tcRes.data || [];
         setProblem(problemData);
+
+        // Fetch status to lock if already accepted
+        const probsRes = await api.get('/problems/student');
+        const studentProbs = probsRes.data?.data ?? probsRes.data ?? [];
+        const currentProb = studentProbs.find(p => p.id === id);
+        if (currentProb && currentProb.status === 'ACCEPTED') {
+          setIsLocked(true);
+          setConsoleOutput("Bạn đã nộp bài thành công trước đó. Chúc mừng!");
+        }
       } catch (err) {
         console.error("Failed to fetch problem", err);
       }
@@ -103,6 +113,14 @@ export default function Workspace() {
           </select>
         </div>
         <div className="flex space-x-3">
+          {isLocked && (
+            <button 
+              onClick={() => navigate(-1)}
+              className="px-4 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded transition flex items-center space-x-1.5 shadow hover:bg-emerald-700"
+            >
+              <span>Thoát ra ngoài</span>
+            </button>
+          )}
           <button 
             disabled={loading || isLocked} onClick={() => handleSubmit(false)}
             className={`px-4 py-1.5 border border-slate-200 font-bold text-xs rounded transition flex items-center space-x-1.5 text-slate-700 ${isLocked ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'}`}
@@ -112,9 +130,11 @@ export default function Workspace() {
           </button>
           <button 
             disabled={loading || isLocked} onClick={() => {
-              if (window.confirm("Bạn có chắc chắn nộp bài không? Sau khi nộp sẽ không được sửa nữa.")) {
-                handleSubmit(true);
-              }
+              setTimeout(() => {
+                if (window.confirm("Bạn có chắc chắn nộp bài không? Sau khi nộp sẽ không được sửa nữa.")) {
+                  handleSubmit(true);
+                }
+              }, 10);
             }}
             className={`px-4 py-1.5 bg-[#1d4ed8] text-white font-bold text-xs rounded transition flex items-center space-x-1.5 shadow ${isLocked ? 'opacity-50 cursor-not-allowed bg-slate-500' : 'hover:bg-[#1e40af]'}`}
           >

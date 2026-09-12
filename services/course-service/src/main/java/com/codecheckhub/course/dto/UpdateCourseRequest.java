@@ -8,5 +8,6 @@ public class UpdateCourseRequest {
     private String description;
     private String syllabus;
     private String passingCriteria;
+    private String passingCriteriaFile;
     private Boolean allowJoinByCode;
 }

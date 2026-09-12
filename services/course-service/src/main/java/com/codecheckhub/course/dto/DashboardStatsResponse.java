@@ -13,5 +13,6 @@ public class DashboardStatsResponse {
     private long totalStudents;
     private long totalCourses;
     private long totalProblems;
+    private long completedProblems;
     private long recentPlagiarismAlerts;
 }

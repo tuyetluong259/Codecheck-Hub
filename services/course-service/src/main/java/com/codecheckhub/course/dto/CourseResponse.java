@@ -21,8 +21,13 @@ public class CourseResponse {
     private String description;
     private String syllabus;
     private String passingCriteria;
+    private String passingCriteriaFile;
     private boolean allowJoinByCode;
     private boolean active;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    // For student course responses, percentage of completed problems
+    @Builder.Default
+    private Double progress = 0.0;
 }

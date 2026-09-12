@@ -84,6 +84,7 @@ public class CourseService {
                 .teacherName(teacherName)
                 .syllabus(course.getSyllabus())
                 .passingCriteria(course.getPassingCriteria())
+                .passingCriteriaFile(course.getPassingCriteriaFile())
                 .allowJoinByCode(course.isAllowJoinByCode())
                 .active(course.isActive())
                 .createdAt(course.getCreatedAt())
@@ -98,6 +99,7 @@ public class CourseService {
         if (request.getDescription() != null) course.setDescription(request.getDescription());
         if (request.getSyllabus() != null) course.setSyllabus(request.getSyllabus());
         if (request.getPassingCriteria() != null) course.setPassingCriteria(request.getPassingCriteria());
+        if (request.getPassingCriteriaFile() != null) course.setPassingCriteriaFile(request.getPassingCriteriaFile());
         if (request.getAllowJoinByCode() != null) course.setAllowJoinByCode(request.getAllowJoinByCode());
         return mapToResponse(courseRepository.save(course));
     }
@@ -112,11 +114,37 @@ public class CourseService {
 
     public List<CourseResponse> getCoursesByStudentId(UUID studentId) {
         List<ClassMember> memberships = classMemberRepository.findByStudentId(studentId);
-        return memberships.stream()
+        List<CourseResponse> responses = memberships.stream()
                 .map(m -> courseRepository.findById(m.getClassId()).orElse(null))
                 .filter(c -> c != null)
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+                
+        // Fetch problem statuses to calculate progress
+        try {
+            String url = submissionServiceUrl + "/api/internal/submissions/student/" + studentId + "/problem-statuses";
+            ResponseEntity<java.util.Map> response = restTemplate.getForEntity(url, java.util.Map.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                java.util.Map<UUID, String> statuses = new java.util.HashMap<>();
+                response.getBody().forEach((k, v) -> statuses.put(UUID.fromString(k.toString()), v.toString()));
+                
+                for (CourseResponse cr : responses) {
+                    List<Problem> courseProblems = problemRepository.findByCourseId(cr.getId());
+                    if (courseProblems.isEmpty()) {
+                        cr.setProgress(0.0);
+                    } else {
+                        long completed = courseProblems.stream()
+                                .filter(p -> "ACCEPTED".equals(statuses.get(p.getId())))
+                                .count();
+                        cr.setProgress((completed * 100.0) / courseProblems.size());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(CourseService.class).warn("Failed to fetch problem statuses for progress: {}", e.getMessage());
+        }
+        
+        return responses;
     }
 
     public CourseResponse getCourseById(UUID id) {
@@ -290,6 +318,58 @@ public class CourseService {
         return AnalyticsResponse.builder().build();
     }
 
+    public List<java.util.Map<String, Object>> getRecentActivities(UUID teacherId) {
+        List<Course> courses = courseRepository.findByTeacherId(teacherId);
+        if (courses.isEmpty()) return List.of();
+        
+        List<UUID> courseIds = courses.stream().map(Course::getId).collect(Collectors.toList());
+        List<Problem> problems = problemRepository.findByCourseIdIn(courseIds);
+        List<UUID> problemIds = problems.stream().map(Problem::getId).collect(Collectors.toList());
+        if (problemIds.isEmpty()) return List.of();
+
+        String url = submissionServiceUrl + "/api/internal/submissions/recent";
+        try {
+            org.springframework.http.ResponseEntity<List> response = restTemplate.postForEntity(url, problemIds, List.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                List<java.util.Map<String, Object>> rawSubmissions = (List<java.util.Map<String, Object>>) response.getBody();
+                List<java.util.Map<String, Object>> activities = new java.util.ArrayList<>();
+                for (java.util.Map<String, Object> sub : rawSubmissions) {
+                    java.util.Map<String, Object> act = new java.util.HashMap<>();
+                    
+                    // Lấy student name và class name
+                    UUID studentId = UUID.fromString(sub.get("studentId").toString());
+                    String studentName = "Sinh viên";
+                    try {
+                        String idUrl = "http://identity-service:8081/api/users/" + studentId;
+                        org.springframework.http.ResponseEntity<java.util.Map> idRes = restTemplate.getForEntity(idUrl, java.util.Map.class);
+                        if (idRes.getStatusCode().is2xxSuccessful() && idRes.getBody() != null) {
+                            studentName = (String) idRes.getBody().get("fullName");
+                        }
+                    } catch (Exception e) {}
+                    
+                    act.put("name", studentName);
+                    
+                    UUID probId = UUID.fromString(sub.get("problemId").toString());
+                    Problem prob = problems.stream().filter(p -> p.getId().equals(probId)).findFirst().orElse(null);
+                    if (prob != null) {
+                        Course c = courses.stream().filter(co -> co.getId().equals(prob.getCourseId())).findFirst().orElse(null);
+                        act.put("cls", c != null ? c.getCode() : "Lớp");
+                    } else {
+                        act.put("cls", "Lớp");
+                    }
+                    
+                    act.put("msg", "Đã nộp bài " + (prob != null ? prob.getTitle() : ""));
+                    act.put("time", sub.get("submittedAt"));
+                    activities.add(act);
+                }
+                return activities;
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(CourseService.class).warn("Failed to fetch recent activities: {}", e.getMessage());
+        }
+        return List.of();
+    }
+
     public DashboardStatsResponse getDashboardStats(UUID teacherId) {
         List<Course> courses = courseRepository.findByTeacherId(teacherId);
         long totalCourses = courses.size();
@@ -314,14 +394,22 @@ public class CourseService {
         long totalCourses = courseIds.size();
         long totalProblems = courseIds.isEmpty() ? 0 : problemRepository.findByCourseIdIn(courseIds).size();
         
-        // Mocked stats for AC rate and completed problems as we don't have submission-service integration for this yet
-        // A complete implementation would call submission-service to get the actual AC count.
-        long completedProblems = Math.max(0, totalProblems / 2); // Dummy calculation for now
+        long completedProblems = 0;
+        try {
+            String url = submissionServiceUrl + "/api/internal/submissions/student/" + studentId + "/stats";
+            ResponseEntity<com.codecheckhub.course.dto.StudentStatsResponse> response = restTemplate.getForEntity(url, com.codecheckhub.course.dto.StudentStatsResponse.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                completedProblems = response.getBody().getTotalProblemsSolved();
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(CourseService.class).warn("Failed to fetch stats from submission-service: {}", e.getMessage());
+        }
         
         return DashboardStatsResponse.builder()
                 .totalCourses(totalCourses)
                 .totalStudents(0) // Not applicable for student
-                .totalProblems(totalProblems)
+                .totalProblems(totalProblems) // Set total problems
+                .completedProblems(completedProblems) // Set completed problems
                 .recentPlagiarismAlerts(0)
                 .build();
     }

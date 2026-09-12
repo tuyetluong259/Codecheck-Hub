@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save, Clipboard, Settings2, ShieldCheck, ChevronRight, ChevronLeft, Plus, Trash2 } from "lucide-react";
+import { Save, Clipboard, Settings2, ShieldCheck, ChevronRight, ChevronLeft, Plus, Trash2, ArrowLeft } from "lucide-react";
 import api from "../../api/axios";
 
 function Toggle({ enabled, onChange }) {
@@ -25,6 +25,11 @@ export default function CreateProblem({ isEdit = false }) {
   const [title, setTitle] = useState(isEdit ? "Valid Parentheses" : "");
   const [difficulty, setDifficulty] = useState("MEDIUM");
   const [description, setDescription] = useState("");
+  const [algorithmTag, setAlgorithmTag] = useState("");
+  const [inputFormat, setInputFormat] = useState("");
+  const [outputFormat, setOutputFormat] = useState("");
+  const [constraints, setConstraints] = useState("");
+  
   const [cpuLimit, setCpuLimit] = useState(1000);
   const [ramLimit, setRamLimit] = useState(256);
   const [complexity, setComplexity] = useState(15);
@@ -39,6 +44,12 @@ export default function CreateProblem({ isEdit = false }) {
   const [courseId, setCourseId] = useState("");
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
+
+  // Test Cases State
+  const [testCases, setTestCases] = useState([
+    { id: 1, label: "Sample Case #1", input: "", expectedOutput: "", isHidden: false, points: 10, orderIndex: 0 }
+  ]);
+  const [hiddenTestCases, setHiddenTestCases] = useState([]);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -56,19 +67,58 @@ export default function CreateProblem({ isEdit = false }) {
     fetchCourses();
   }, []);
 
+  const handleAddSampleCase = () => {
+    const newId = Date.now();
+    setTestCases([
+      ...testCases,
+      { id: newId, label: `Sample Case #${testCases.length + 1}`, input: "", expectedOutput: "", isHidden: false, points: 10, orderIndex: testCases.length }
+    ]);
+  };
+
+  const handleAddHiddenCase = () => {
+    const newId = Date.now();
+    setHiddenTestCases([
+      ...hiddenTestCases,
+      { id: newId, label: `Hidden Case #${hiddenTestCases.length + 1}`, input: "", expectedOutput: "", isHidden: true, points: 10, orderIndex: hiddenTestCases.length }
+    ]);
+  };
+
+  const updateTestCase = (id, field, value, isHidden) => {
+    if (isHidden) {
+      setHiddenTestCases(hiddenTestCases.map(tc => tc.id === id ? { ...tc, [field]: value } : tc));
+    } else {
+      setTestCases(testCases.map(tc => tc.id === id ? { ...tc, [field]: value } : tc));
+    }
+  };
+
+  const removeTestCase = (id, isHidden) => {
+    if (isHidden) {
+      setHiddenTestCases(hiddenTestCases.filter(tc => tc.id !== id));
+    } else {
+      setTestCases(testCases.filter(tc => tc.id !== id));
+    }
+  };
+
   const handleSave = async () => {
     if (!title || !courseId) return alert("Vui lòng nhập tiêu đề và chọn lớp học");
     try {
       const payload = {
         title,
         description,
+        inputFormat,
+        outputFormat,
+        constraints,
         difficulty,
         courseId,
         timeLimitMs: parseInt(cpuLimit),
         memoryLimitMb: parseInt(ramLimit),
         maxCyclomaticComplexity: complexityEnabled ? parseInt(complexity) : null,
         namingConvention: namingEnabled ? varNaming : null,
-        published: true
+        published: true,
+        testCases: [
+          ...testCases.map(t => ({ input: t.input, expectedOutput: t.expectedOutput, isHidden: false, points: t.points, orderIndex: t.orderIndex })),
+          ...hiddenTestCases.map(t => ({ input: t.input, expectedOutput: t.expectedOutput, isHidden: true, points: t.points, orderIndex: t.orderIndex }))
+        ].filter(t => t.input.trim() !== "" || t.expectedOutput.trim() !== "")
       };
       await api.post('/problems', payload);
       navigate("/lecturer/problems");
@@ -81,7 +131,12 @@ export default function CreateProblem({ isEdit = false }) {
   return (
     <div className="p-8 space-y-8">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-4xl font-black tracking-tight text-slate-800">{isEdit ? "Edit Problem: Valid Parentheses" : "Create New Problem"}</h1>
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-slate-200 text-slate-500 transition" title="Quay lại">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-4xl font-black tracking-tight text-slate-800">{isEdit ? "Edit Problem: Valid Parentheses" : "Create New Problem"}</h1>
+        </div>
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/lecturer/problems")} className="rounded-xl border border-[#7db5ff] bg-white px-5 py-2.5 text-sm font-bold text-[#1d4ed8] hover:bg-[#eef5ff]">Cancel</button>
           <button onClick={handleSave} className="rounded-xl bg-[#1d4ed8] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-600/15 hover:bg-[#1e40af]">Publish</button>
@@ -139,7 +194,7 @@ export default function CreateProblem({ isEdit = false }) {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">Algorithm (Tag)</label>
-                  <input placeholder="e.g. Stack, HashMap" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
+                  <input value={algorithmTag} onChange={e => setAlgorithmTag(e.target.value)} placeholder="e.g. Stack, HashMap" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
                 </div>
               </div>
 
@@ -151,17 +206,17 @@ export default function CreateProblem({ isEdit = false }) {
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">Input Format</label>
-                  <input placeholder="Example: array of integers" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
+                  <input value={inputFormat} onChange={e => setInputFormat(e.target.value)} placeholder="Example: array of integers" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">Output Format</label>
-                  <input placeholder="Example: array of indices" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
+                  <input value={outputFormat} onChange={e => setOutputFormat(e.target.value)} placeholder="Example: array of indices" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">Constraints</label>
-                <input placeholder="Example: 1 <= n <= 10^5" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
+                <input value={constraints} onChange={e => setConstraints(e.target.value)} placeholder="Example: 1 <= n <= 10^5" className="w-full rounded-xl border border-[#7db5ff] bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
               </div>
             </div>
           )}
@@ -182,43 +237,64 @@ export default function CreateProblem({ isEdit = false }) {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-2xl font-black tracking-tight text-slate-800">Sample Test Cases</h3>
-                  <button className="inline-flex items-center gap-2 rounded-xl border border-[#7db5ff] bg-white px-3 py-2 text-sm font-bold text-[#1d4ed8] hover:bg-[#eef5ff]">
+                  <button onClick={handleAddSampleCase} className="inline-flex items-center gap-2 rounded-xl border border-[#7db5ff] bg-white px-3 py-2 text-sm font-bold text-[#1d4ed8] hover:bg-[#eef5ff]">
                     <Plus className="h-4 w-4" /> Add Sample Case
                   </button>
                 </div>
 
-                {[
-                  { label: "Sample Case #1", input: "Enter sample input data...", output: "Enter expected output..." },
-                  { label: "Sample Case #2", input: "Enter sample input data...", output: "Enter expected output..." },
-                ].map((caseItem, idx) => (
-                  <div key={idx} className="space-y-3 rounded-xl border border-slate-200 bg-[#f8fbff] p-4">
+                {testCases.map((caseItem, idx) => (
+                  <div key={caseItem.id} className="space-y-3 rounded-xl border border-slate-200 bg-[#f8fbff] p-4">
                     <div className="flex items-center justify-between">
                       <div className="text-base font-bold text-slate-700">{caseItem.label}</div>
-                      <button className="rounded-lg bg-red-100 p-2 text-red-600 hover:bg-red-200"><Trash2 className="h-4 w-4" /></button>
+                      <button onClick={() => removeTestCase(caseItem.id, false)} className="rounded-lg bg-red-100 p-2 text-red-600 hover:bg-red-200"><Trash2 className="h-4 w-4" /></button>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-3">
                         <label className="w-20 text-sm font-bold text-slate-700">Input:</label>
-                        <input defaultValue={caseItem.input} className="flex-1 rounded-xl border border-[#7db5ff] bg-white px-4 py-3 text-sm text-slate-700 focus:outline-none" />
+                        <input value={caseItem.input} onChange={e => updateTestCase(caseItem.id, 'input', e.target.value, false)} placeholder="Enter sample input data..." className="flex-1 rounded-xl border border-[#7db5ff] bg-white px-4 py-3 text-sm text-slate-700 focus:outline-none" />
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <label className="w-20 text-sm font-bold text-slate-700">Output:</label>
-                        <input defaultValue={caseItem.output} className="flex-1 rounded-xl border border-[#7db5ff] bg-white px-4 py-3 text-sm text-slate-700 focus:outline-none" />
+                        <input value={caseItem.expectedOutput} onChange={e => updateTestCase(caseItem.id, 'expectedOutput', e.target.value, false)} placeholder="Enter expected output..." className="flex-1 rounded-xl border border-[#7db5ff] bg-white px-4 py-3 text-sm text-slate-700 focus:outline-none" />
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="space-y-3 rounded-xl border border-dashed border-[#7db5ff] bg-[#f8fbff] p-6 text-center">
-                <div className="text-xl font-bold text-slate-700">Hidden Test Cases</div>
-                <button className="mt-2 inline-flex items-center gap-2 rounded-xl border border-[#7db5ff] bg-white px-3 py-2 text-sm font-bold text-[#1d4ed8] hover:bg-[#eef5ff]">
-                  <Plus className="h-4 w-4" /> Add Test Case
-                </button>
-                <div className="mt-4 rounded-xl border border-dashed border-[#7db5ff] bg-white p-10 text-slate-500">
-                  <div className="text-2xl font-bold">Drop Your Files Here</div>
-                  <div className="mt-2 text-sm">Only files with extensions such as .in, .out, or .txt are accepted.</div>
+              <div className="space-y-4 pt-4 border-t border-slate-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black tracking-tight text-slate-800">Hidden Test Cases</h3>
+                  <button onClick={handleAddHiddenCase} className="inline-flex items-center gap-2 rounded-xl border border-[#7db5ff] bg-white px-3 py-2 text-sm font-bold text-[#1d4ed8] hover:bg-[#eef5ff]">
+                    <Plus className="h-4 w-4" /> Add Hidden Case
+                  </button>
                 </div>
+
+                {hiddenTestCases.map((caseItem, idx) => (
+                  <div key={caseItem.id} className="space-y-3 rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-base font-bold text-slate-700">{caseItem.label}</div>
+                      <button onClick={() => removeTestCase(caseItem.id, true)} className="rounded-lg bg-red-100 p-2 text-red-600 hover:bg-red-200"><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="w-20 text-sm font-bold text-slate-700">Input:</label>
+                        <input value={caseItem.input} onChange={e => updateTestCase(caseItem.id, 'input', e.target.value, true)} placeholder="Hidden input..." className="flex-1 rounded-xl border border-slate-200 bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="w-20 text-sm font-bold text-slate-700">Output:</label>
+                        <input value={caseItem.expectedOutput} onChange={e => updateTestCase(caseItem.id, 'expectedOutput', e.target.value, true)} placeholder="Expected hidden output..." className="flex-1 rounded-xl border border-slate-200 bg-[#f8fbff] px-4 py-3 text-sm text-slate-700 focus:outline-none" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {hiddenTestCases.length === 0 && (
+                  <div className="rounded-xl border border-dashed border-[#7db5ff] bg-white p-10 text-center text-slate-500">
+                    <div className="text-lg font-bold">No hidden test cases yet</div>
+                    <div className="mt-1 text-sm">Click "Add Hidden Case" to create one.</div>
+                  </div>
+                )}
               </div>
             </div>
           )}

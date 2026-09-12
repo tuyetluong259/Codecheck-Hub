@@ -91,7 +91,7 @@ export default function StudentProblems() {
             {loading ? <tr><td colSpan="5" className="p-4 text-center">Đang tải...</td></tr> : problems.map((prob) => (
               <tr key={prob.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60">
                 <td className="p-4">
-                  <span className="inline-block w-3 h-3 rounded-full bg-slate-300" />
+                  <span className={`inline-block w-3 h-3 rounded-full ${prob.status === 'ACCEPTED' ? 'bg-emerald-500' : (prob.status === 'PENDING' || prob.status === 'RUNNING') ? 'bg-yellow-400' : (prob.status === 'NOT_STARTED' || !prob.status) ? 'bg-slate-300' : 'bg-rose-500'}`} title={prob.status || 'NOT_STARTED'} />
                 </td>
                 <td className="p-4 text-slate-800 font-extrabold hover:text-[#1d4ed8] transition">
                   <Link to={`/student/workspace/${prob.id}`}>{prob.title}</Link>

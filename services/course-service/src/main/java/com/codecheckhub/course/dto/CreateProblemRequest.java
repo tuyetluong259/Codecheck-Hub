@@ -3,6 +3,7 @@ package com.codecheckhub.course.dto;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.List;
 
 @Data
 public class CreateProblemRequest {
@@ -20,4 +21,5 @@ public class CreateProblemRequest {
     private boolean published = true;
     private Integer maxCyclomaticComplexity;
     private String namingConvention;
+    private List<CreateTestCaseRequest> testCases;
 }
