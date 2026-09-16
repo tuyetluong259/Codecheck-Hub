@@ -20,8 +20,10 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +36,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final StringRedisTemplate redisTemplate;
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
@@ -103,7 +106,10 @@ public class AuthService {
 
     @Transactional
     public void logout(String email) {
-        userRepository.findByEmail(email).ifPresent(refreshTokenRepository::revokeAllByUser);
+        userRepository.findByEmail(email).ifPresent(user -> {
+            refreshTokenRepository.revokeAllByUser(user);
+            redisTemplate.delete("session:user:" + user.getId().toString());
+        });
     }
 
     private AuthResponse generateAuthResponse(User user) {
@@ -120,6 +126,14 @@ public class AuthService {
                 .expiresAt(LocalDateTime.now().plusSeconds(refreshExpiration / 1000))
                 .build();
         refreshTokenRepository.save(tokenEntity);
+
+        // Store active session token in Redis
+        redisTemplate.opsForValue().set(
+                "session:user:" + user.getId().toString(),
+                accessToken,
+                jwtExpiration,
+                TimeUnit.MILLISECONDS
+        );
 
         return AuthResponse.builder()
                 .accessToken(accessToken)

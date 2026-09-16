@@ -175,6 +175,7 @@ export default function GradingAndAnalytics() {
               <thead>
                 <tr className="bg-[#f8fbff]">
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Student ID</th>
+                  <th className="p-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Student Name</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Status</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Test Cases</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Score</th>
@@ -183,18 +184,19 @@ export default function GradingAndAnalytics() {
                 </tr>
               </thead>
               <tbody>
-                {gradebook.length === 0 ? <tr><td colSpan="6" className="p-4 text-center font-bold text-slate-400">Chưa có bài nộp nào cho bài tập này.</td></tr> : gradebook.map((sub, idx) => (
+                {gradebook.length === 0 ? <tr><td colSpan="7" className="p-4 text-center font-bold text-slate-400">Chưa có bài nộp nào cho bài tập này.</td></tr> : gradebook.map((sub, idx) => (
                   <tr key={idx} className="border-t border-slate-200 hover:bg-slate-50/60">
-                    <td className="p-4 text-sm font-bold text-[#1d4ed8]">{sub.studentId.substring(0, 8)}...</td>
+                    <td className="p-4 text-sm font-bold text-[#1d4ed8]">{sub.studentCode}</td>
+                    <td className="p-4 text-sm font-semibold text-slate-700">{sub.studentName}</td>
                     <td className="p-4">
-                      <span className={`rounded-lg px-2.5 py-1 text-[10px] uppercase font-black ${statusStyles[sub.status] || "bg-slate-100 text-slate-700"}`}>
-                        {sub.status}
+                      <span className={`rounded-lg px-2.5 py-1 text-[10px] uppercase font-black ${statusStyles[sub.submission.status] || "bg-slate-100 text-slate-700"}`}>
+                        {sub.submission.status}
                       </span>
                     </td>
-                    <td className="p-4 text-sm font-bold text-slate-700">{sub.passedTestCases || 0} / {sub.totalTestCases || 0}</td>
-                    <td className="p-4 text-sm font-black text-emerald-600">{sub.score || 0}</td>
-                    <td className="p-4 text-sm font-bold text-slate-700">{sub.plagiarismScore || 0}%</td>
-                    <td className="p-4 text-sm font-medium text-slate-500">{new Date(sub.submittedAt).toLocaleString()}</td>
+                    <td className="p-4 text-sm font-bold text-slate-700">{sub.submission.passedTestCases || 0} / {sub.submission.totalTestCases || 0}</td>
+                    <td className="p-4 text-sm font-black text-emerald-600">{sub.submission.score || 0}</td>
+                    <td className="p-4 text-sm font-bold text-slate-700">{sub.submission.plagiarismScore || 0}%</td>
+                    <td className="p-4 text-sm font-medium text-slate-500">{new Date(sub.submission.submittedAt).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -217,22 +219,22 @@ export default function GradingAndAnalytics() {
               <tbody>
                 {plagiarismList.length === 0 ? <tr><td colSpan="5" className="p-4 text-center font-bold text-slate-400">Mã nguồn trong sạch. Không phát hiện đạo văn!</td></tr> : plagiarismList.map((pair, idx) => (
                   <tr key={idx} className="border-t border-slate-200 hover:bg-slate-50/60">
-                    <td className="p-4 text-sm font-bold text-slate-700">{pair.studentId.substring(0,8)}...</td>
-                    <td className="p-4 text-sm font-bold text-slate-700">{pair.plagiarismMatchedSubmissionId || 'N/A'}</td>
-                    <td className="p-4 text-sm font-black text-rose-600">{pair.plagiarismScore}%</td>
+                    <td className="p-4 text-sm font-bold text-slate-700">{pair.studentCode} - {pair.studentName}</td>
+                    <td className="p-4 text-sm font-bold text-slate-700">{pair.matchedStudentCode} - {pair.matchedStudentName}</td>
+                    <td className="p-4 text-sm font-black text-rose-600">{pair.submission.plagiarismScore}%</td>
                     <td className="p-4">
-                       <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase ${pair.status === 'PENALIZED' ? 'bg-rose-100 text-rose-700' : pair.status === 'EXCUSED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                         {pair.status}
+                       <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase ${pair.submission.status === 'PENALIZED' ? 'bg-rose-100 text-rose-700' : pair.submission.status === 'EXCUSED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                         {pair.submission.status}
                        </span>
                     </td>
                     <td className="p-4 flex gap-2">
-                       {pair.status !== 'PENALIZED' && pair.status !== 'EXCUSED' && (
+                       {pair.submission.status !== 'PENALIZED' && pair.submission.status !== 'EXCUSED' && (
                          <>
-                           <button onClick={() => handlePenalize(pair.id, 'PENALIZE')} className="rounded bg-rose-500 px-3 py-1 text-xs font-bold text-white hover:bg-rose-600">Phạt (0đ)</button>
-                           <button onClick={() => handlePenalize(pair.id, 'EXCUSE')} className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-600 hover:bg-slate-50">Bỏ qua</button>
+                           <button onClick={() => handlePenalize(pair.submission.id, 'PENALIZE')} className="rounded bg-rose-500 px-3 py-1 text-xs font-bold text-white hover:bg-rose-600">Phạt (0đ)</button>
+                           <button onClick={() => handlePenalize(pair.submission.id, 'EXCUSE')} className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-600 hover:bg-slate-50">Bỏ qua</button>
                          </>
                        )}
-                       <Link to={`/lecturer/compare?sub1=${pair.id}&sub2=${pair.plagiarismMatchedSubmissionId}`} className="rounded bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-200">
+                       <Link to={`/lecturer/compare?sub1=${pair.submission.id}&sub2=${pair.submission.plagiarismMatchedSubmissionId}`} className="rounded bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-200">
                          Compare Code
                        </Link>
                     </td>

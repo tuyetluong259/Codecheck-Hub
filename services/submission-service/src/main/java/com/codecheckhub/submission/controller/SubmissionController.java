@@ -56,7 +56,7 @@ public class SubmissionController {
 
     @GetMapping("/problem/{problemId}/gradebook")
     @Operation(summary = "Get latest submission for each student for a problem (Gradebook)")
-    public ResponseEntity<List<Submission>> getGradebook(
+    public ResponseEntity<List<com.codecheckhub.submission.dto.GradebookEntryResponse>> getGradebook(
             @PathVariable UUID problemId,
             @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role) {
         
@@ -93,14 +93,13 @@ public class SubmissionController {
 
     @GetMapping("/problem/{problemId}/suspicious")
     @Operation(summary = "Get suspicious submissions (Plagiarism score >= threshold)")
-    public ResponseEntity<?> getSuspiciousSubmissions(
+    public ResponseEntity<List<com.codecheckhub.submission.dto.PlagiarismResponse>> getSuspiciousSubmissions(
             @PathVariable UUID problemId,
             @RequestParam(defaultValue = "70.0") double threshold,
             @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role) {
         
         if (!"TEACHER".equals(role) && !"ADMIN".equals(role)) {
-            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Only teachers and admins can perform this action"));
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
         }
 
         return ResponseEntity.ok(submissionService.getSuspiciousSubmissions(problemId, threshold));

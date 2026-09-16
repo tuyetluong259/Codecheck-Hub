@@ -65,7 +65,16 @@ public class ProblemService {
         }
 
         return problems.stream()
-                .map(p -> com.codecheckhub.course.dto.StudentProblemResponse.fromProblem(p, statuses.getOrDefault(p.getId(), "NOT_STARTED")))
+                .map(p -> {
+                    String courseName = courseRepository.findById(p.getCourseId())
+                            .map(Course::getName)
+                            .orElse("Không xác định");
+                    return com.codecheckhub.course.dto.StudentProblemResponse.fromProblem(
+                            p, 
+                            statuses.getOrDefault(p.getId(), "NOT_STARTED"),
+                            courseName
+                    );
+                })
                 .toList();
     }
 
@@ -95,6 +104,7 @@ public class ProblemService {
                 .published(request.isPublished())
                 .maxCyclomaticComplexity(request.getMaxCyclomaticComplexity())
                 .namingConvention(request.getNamingConvention())
+                .isPractice(request.isPractice())
                 .build();
         Problem savedProblem = problemRepository.save(problem);
 

@@ -16,6 +16,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +34,9 @@ import java.util.stream.Collectors;
 import com.codecheckhub.submission.dto.AnalyticsResponse;
 import com.codecheckhub.submission.dto.CompareResponse;
 import com.codecheckhub.submission.dto.StudentStatsResponse;
+import com.codecheckhub.submission.dto.GradebookEntryResponse;
+import com.codecheckhub.submission.dto.PlagiarismResponse;
+import com.codecheckhub.submission.dto.UserResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +50,17 @@ public class SubmissionService {
     private final ObjectMapper objectMapper;
     private final PlagiarismService plagiarismService;
     private final com.codecheckhub.submission.messaging.NotificationProducer notificationProducer;
+    private final RestTemplate restTemplate;
+
+    private HttpEntity<?> createAuthEntity() {
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        HttpHeaders headers = new HttpHeaders();
+        if (authHeader != null) {
+            headers.set(HttpHeaders.AUTHORIZATION, authHeader);
+        }
+        return new HttpEntity<>(headers);
+    }
 
     @Transactional
     public Submission submit(UUID problemId, UUID studentId, String code,
@@ -227,7 +249,27 @@ public class SubmissionService {
         return submissionRepository.findByProblemIdAndStudentIdOrderBySubmittedAtDesc(problemId, studentId);
     }
 
-    public List<Submission> getGradebook(UUID problemId) {
+    private UserResponse getUserInfo(UUID userId) {
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    "http://identity-service:8081/api/users/" + userId,
+                    HttpMethod.GET,
+                    createAuthEntity(),
+                    String.class
+            );
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(response.getBody());
+            com.fasterxml.jackson.databind.JsonNode data = root.get("data");
+            if (data != null && !data.isNull()) {
+                return objectMapper.treeToValue(data, UserResponse.class);
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("Failed to fetch user info for {}: {}", userId, e.getMessage());
+            return null;
+        }
+    }
+
+    public List<GradebookEntryResponse> getGradebook(UUID problemId) {
         List<Submission> allSubmissions = submissionRepository.findByProblemIdOrderBySubmittedAtDesc(problemId);
         Map<UUID, Submission> latestPerStudent = new java.util.LinkedHashMap<>();
         for (Submission s : allSubmissions) {
@@ -235,13 +277,35 @@ public class SubmissionService {
                 latestPerStudent.put(s.getStudentId(), s);
             }
         }
-        return new ArrayList<>(latestPerStudent.values());
+        
+        return latestPerStudent.values().stream().map(sub -> {
+            UserResponse user = getUserInfo(sub.getStudentId());
+            return GradebookEntryResponse.builder()
+                    .submission(sub)
+                    .studentName(user != null ? user.getFullName() : "Unknown")
+                    .studentCode(user != null ? user.getStudentId() : sub.getStudentId().toString())
+                    .build();
+        }).collect(Collectors.toList());
     }
 
-    public List<Submission> getSuspiciousSubmissions(UUID problemId, double threshold) {
+    public List<PlagiarismResponse> getSuspiciousSubmissions(UUID problemId, double threshold) {
         return submissionRepository.findByProblemIdOrderBySubmittedAtDesc(problemId)
                 .stream()
                 .filter(s -> s.getPlagiarismScore() != null && s.getPlagiarismScore() >= threshold)
+                .map(sub -> {
+                    UserResponse user = getUserInfo(sub.getStudentId());
+                    UserResponse matchedUser = sub.getPlagiarismMatchedSubmissionId() != null 
+                        ? getUserInfo(getById(sub.getPlagiarismMatchedSubmissionId()).getStudentId()) 
+                        : null;
+                        
+                    return PlagiarismResponse.builder()
+                            .submission(sub)
+                            .studentName(user != null ? user.getFullName() : "Unknown")
+                            .studentCode(user != null ? user.getStudentId() : sub.getStudentId().toString())
+                            .matchedStudentName(matchedUser != null ? matchedUser.getFullName() : "Unknown")
+                            .matchedStudentCode(matchedUser != null ? matchedUser.getStudentId() : (sub.getPlagiarismMatchedSubmissionId() != null ? sub.getPlagiarismMatchedSubmissionId().toString() : ""))
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 

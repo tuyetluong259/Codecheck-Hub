@@ -25,7 +25,8 @@ export default function Navbar() {
   useEffect(() => {
     if (user) {
       fetchNotifications();
-      // Polling could be added here or rely on WebSocket for updates
+      const interval = setInterval(fetchNotifications, 15000); // Poll every 15 seconds
+      return () => clearInterval(interval);
     }
   }, [user]);
 

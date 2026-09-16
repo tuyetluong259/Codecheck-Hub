@@ -340,10 +340,13 @@ public class CourseService {
                     UUID studentId = UUID.fromString(sub.get("studentId").toString());
                     String studentName = "Sinh viên";
                     try {
-                        String idUrl = "http://identity-service:8081/api/users/" + studentId;
-                        org.springframework.http.ResponseEntity<java.util.Map> idRes = restTemplate.getForEntity(idUrl, java.util.Map.class);
-                        if (idRes.getStatusCode().is2xxSuccessful() && idRes.getBody() != null) {
-                            studentName = (String) idRes.getBody().get("fullName");
+                        String idUrl = identityServiceUrl + "/api/users/" + studentId;
+                        org.springframework.http.ResponseEntity<ApiResponse<UserResponse>> idRes = restTemplate.exchange(
+                                idUrl, org.springframework.http.HttpMethod.GET, createAuthEntity(), new org.springframework.core.ParameterizedTypeReference<ApiResponse<UserResponse>>() {}
+                        );
+                        if (idRes.getBody() != null && idRes.getBody().isSuccess()) {
+                            UserResponse u = idRes.getBody().getData();
+                            studentName = u.getFullName() + (u.getStudentId() != null ? " (" + u.getStudentId() + ")" : "");
                         }
                     } catch (Exception e) {}
                     

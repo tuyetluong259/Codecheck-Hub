@@ -143,11 +143,20 @@ export default function LecturerClassDetail() {
     }
   };
 
-  if (loading) return <div className="p-8">Đang tải...</div>;
-  if (!classInfo) return <div className="p-8 text-rose-500 font-bold">Không tìm thấy thông tin lớp học</div>;
+  if (loading) return <div className="p-8">Đang tải thông tin...</div>;
+  if (!classInfo) return <div className="p-8">Lớp học không tồn tại!</div>;
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="p-8 space-y-8">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 hover:text-blue-600 transition font-bold text-sm">
+        <ArrowLeft className="h-4 w-4" /> Quay lại
+      </button>
+
+      <div>
+        <h1 className="text-4xl font-black tracking-tight text-slate-800">{classInfo.name} ({classInfo.code})</h1>
+        <p className="mt-1 text-lg text-slate-500">{classInfo.description}</p>
+      </div>
+
       <div className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-3">

@@ -19,15 +19,20 @@ public class StudentProblemResponse {
     private String description;
     private String difficulty;
     private String status; // ACCEPTED, FAILED, PENDING, NOT_STARTED
+    @com.fasterxml.jackson.annotation.JsonProperty("isPractice")
+    private boolean isPractice;
+    private String courseName;
     private LocalDateTime createdAt;
     
-    public static StudentProblemResponse fromProblem(Problem problem, String status) {
+    public static StudentProblemResponse fromProblem(Problem problem, String status, String courseName) {
         return StudentProblemResponse.builder()
                 .id(problem.getId())
                 .title(problem.getTitle())
                 .description(problem.getDescription())
                 .difficulty(problem.getDifficulty().name())
                 .status(status)
+                .isPractice(problem.isPractice())
+                .courseName(courseName)
                 .createdAt(problem.getCreatedAt())
                 .build();
     }

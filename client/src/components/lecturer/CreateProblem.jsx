@@ -115,6 +115,7 @@ export default function CreateProblem({ isEdit = false }) {
         maxCyclomaticComplexity: complexityEnabled ? parseInt(complexity) : null,
         namingConvention: namingEnabled ? varNaming : null,
         published: true,
+        isPractice: isPractice,
         testCases: [
           ...testCases.map(t => ({ input: t.input, expectedOutput: t.expectedOutput, isHidden: false, points: t.points, orderIndex: t.orderIndex })),
           ...hiddenTestCases.map(t => ({ input: t.input, expectedOutput: t.expectedOutput, isHidden: true, points: t.points, orderIndex: t.orderIndex }))
@@ -338,6 +339,14 @@ export default function CreateProblem({ isEdit = false }) {
                       <option value="20%">20%</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-5">
+                  <div>
+                    <div className="text-xl font-bold text-slate-700">Practice Mode (Luyện tập)</div>
+                    <div className="text-sm text-slate-500">Cho phép sinh viên làm lại bài nhiều lần sau khi đã nộp.</div>
+                  </div>
+                  <Toggle enabled={isPractice} onChange={() => setIsPractice(!isPractice)} />
                 </div>
 
                 <div className="flex items-center justify-between gap-5">

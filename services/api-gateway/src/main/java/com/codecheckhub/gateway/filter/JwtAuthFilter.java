@@ -58,8 +58,30 @@ public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Co
                                             .header("X-User-Email", claims.getSubject())
                                             .header("X-User-Role", claims.get("role", String.class)))
                                     .build();
-            
-                            return chain.filter(mutatedExchange);
+
+                            String role = claims.get("role", String.class);
+                            if (!"STUDENT".equals(role)) {
+                                return chain.filter(mutatedExchange);
+                            }
+
+                            // Retrieve the active session token for this user
+                            return redisTemplate.opsForValue().get("session:user:" + userId)
+                                    .map(java.util.Optional::of)
+                                    .defaultIfEmpty(java.util.Optional.empty())
+                                    .flatMap(optToken -> {
+                                        if (optToken.isEmpty()) {
+                                            // If no active session found (maybe expired in Redis but not in token)
+                                            return unauthorized(exchange, "Phiên đăng nhập đã hết hạn hoặc không hợp lệ");
+                                        }
+                                        String activeToken = optToken.get().trim().replace("\"", "");
+                                        String cleanToken = token.trim().replace("\"", "");
+                                        if (!activeToken.equals(cleanToken)) {
+                                            // The user logged in from somewhere else
+                                            return unauthorized(exchange, "Tài khoản của bạn đã được đăng nhập ở một thiết bị khác");
+                                        }
+
+                                        return chain.filter(mutatedExchange);
+                                    });
                         });
             } catch (Exception e) {
                 log.error("JWT validation failed: {}", e.getMessage());

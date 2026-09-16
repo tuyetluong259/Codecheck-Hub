@@ -28,13 +28,19 @@ export default function Workspace() {
         problemData.testCases = tcRes.data || [];
         setProblem(problemData);
 
-        // Fetch status to lock if already accepted
+        // Fetch status to lock if already accepted or if it is an exam and they already submitted
         const probsRes = await api.get('/problems/student');
         const studentProbs = probsRes.data?.data ?? probsRes.data ?? [];
         const currentProb = studentProbs.find(p => p.id === id);
-        if (currentProb && currentProb.status === 'ACCEPTED') {
+        
+        if (currentProb && currentProb.isPractice === false && (currentProb.status === 'ACCEPTED' || currentProb.status === 'FAILED')) {
           setIsLocked(true);
-          setConsoleOutput("Bạn đã nộp bài thành công trước đó. Chúc mừng!");
+          setConsoleOutput("Bài kiểm tra này đã được nộp và không thể làm lại.");
+        } else if (currentProb && currentProb.status === 'ACCEPTED') {
+          // If it's a practice problem, they can redo it, but we might want to let them know they already solved it
+          // Wait, if it's practice, maybe we don't lock it?
+          // The previous code locked it if ACCEPTED. Let's not lock it if it's practice.
+          setConsoleOutput("Bạn đã nộp bài thành công trước đó. Đây là bài luyện tập nên bạn có thể làm lại.");
         }
       } catch (err) {
         console.error("Failed to fetch problem", err);
@@ -128,19 +134,21 @@ export default function Workspace() {
             <Play className="h-3.5 w-3.5 text-slate-500" />
             <span>Chạy thử</span>
           </button>
-          <button 
-            disabled={loading || isLocked} onClick={() => {
-              setTimeout(() => {
-                if (window.confirm("Bạn có chắc chắn nộp bài không? Sau khi nộp sẽ không được sửa nữa.")) {
-                  handleSubmit(true);
-                }
-              }, 10);
-            }}
-            className={`px-4 py-1.5 bg-[#1d4ed8] text-white font-bold text-xs rounded transition flex items-center space-x-1.5 shadow ${isLocked ? 'opacity-50 cursor-not-allowed bg-slate-500' : 'hover:bg-[#1e40af]'}`}
-          >
-            <Send className="h-3.5 w-3.5" />
-            <span>{isLocked ? "Đã nộp" : loading ? "Đang chấm..." : "Nộp bài làm"}</span>
-          </button>
+          {(!isLocked || (problem && problem.isPractice !== false)) && (
+            <button 
+              disabled={loading || isLocked} onClick={() => {
+                setTimeout(() => {
+                  if (window.confirm("Bạn có chắc chắn nộp bài không? Sau khi nộp sẽ không được sửa nữa.")) {
+                    handleSubmit(true);
+                  }
+                }, 10);
+              }}
+              className={`px-4 py-1.5 bg-[#1d4ed8] text-white font-bold text-xs rounded transition flex items-center space-x-1.5 shadow ${isLocked ? 'opacity-50 cursor-not-allowed bg-slate-500' : 'hover:bg-[#1e40af]'}`}
+            >
+              <Send className="h-3.5 w-3.5" />
+              <span>{isLocked ? "Đã nộp" : loading ? "Đang chấm..." : "Nộp bài làm"}</span>
+            </button>
+          )}
         </div>
       </div>
 

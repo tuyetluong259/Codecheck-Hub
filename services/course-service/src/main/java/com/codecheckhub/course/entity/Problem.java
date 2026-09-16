@@ -68,6 +68,11 @@ public class Problem {
     @Builder.Default
     private Boolean isClosedNotified = false;
 
+    @Column(name = "is_practice", nullable = false)
+    @Builder.Default
+    @com.fasterxml.jackson.annotation.JsonProperty("isPractice")
+    private boolean isPractice = false;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

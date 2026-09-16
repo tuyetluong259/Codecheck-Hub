@@ -96,7 +96,7 @@ export default function StudentProblems() {
                 <td className="p-4 text-slate-800 font-extrabold hover:text-[#1d4ed8] transition">
                   <Link to={`/student/workspace/${prob.id}`}>{prob.title}</Link>
                 </td>
-                <td className="p-4 text-slate-600 font-medium">Lớp học</td>
+                <td className="p-4 text-slate-600 font-medium">{prob.courseName || "Lớp học"}</td>
                 <td className="p-4 text-slate-600 font-medium">
                   <span className={`inline-block px-2 py-1 text-xs font-bold rounded ${prob.difficulty === 'HARD' ? 'bg-rose-100 text-rose-700' : prob.difficulty === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                     {prob.difficulty}

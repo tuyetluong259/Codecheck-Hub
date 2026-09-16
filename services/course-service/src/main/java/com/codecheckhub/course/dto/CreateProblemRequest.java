@@ -21,5 +21,7 @@ public class CreateProblemRequest {
     private boolean published = true;
     private Integer maxCyclomaticComplexity;
     private String namingConvention;
+    @com.fasterxml.jackson.annotation.JsonProperty("isPractice")
+    private boolean isPractice = false;
     private List<CreateTestCaseRequest> testCases;
 }

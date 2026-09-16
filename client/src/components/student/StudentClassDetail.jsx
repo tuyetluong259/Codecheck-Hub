@@ -147,7 +147,7 @@ export default function StudentClassDetail() {
                   to={`/student/workspace/${asm.id}`}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-xs rounded-lg transition shadow-md shadow-blue-600/15"
                 >
-                  <span>{asm.status === "ACCEPTED" || asm.status === "FAILED" ? "Làm lại" : "Làm bài"}</span>
+                  <span>{(asm.status === "ACCEPTED" || asm.status === "FAILED") ? (asm.isPractice !== false ? "Làm lại" : "Xem bài nộp") : "Làm bài"}</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
