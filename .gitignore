@@ -54,3 +54,6 @@ yarn-error.log*
 
 # ===== SonarQube =====
 .scannerwork/
+
+.postman/
+postman/
