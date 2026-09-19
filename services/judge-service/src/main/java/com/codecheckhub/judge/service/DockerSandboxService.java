@@ -85,9 +85,7 @@ public class DockerSandboxService {
                     .withMemory(memoryBytes)
                     .withMemorySwap(memoryBytes)           // Disable swap
                     .withNetworkMode("none")               // Không có mạng
-                    .withReadonlyRootfs(false)
-                    .withBinds(new Bind(tempDir.toAbsolutePath().toString(),
-                            new Volume("/sandbox"), AccessMode.ro));
+                    .withReadonlyRootfs(false);
 
             CreateContainerResponse container = dockerClient.createContainerCmd(image)
                     .withCmd(cmd)
@@ -98,6 +96,14 @@ public class DockerSandboxService {
                     .exec();
 
             containerId = container.getId();
+
+            // --- BUG FIX: Copy file into container to avoid Docker-out-of-Docker bind mount issues ---
+            dockerClient.copyArchiveToContainerCmd(containerId)
+                    .withHostResource(tempDir.toAbsolutePath().toString())
+                    .withRemotePath("/sandbox")
+                    .withDirChildrenOnly(true)
+                    .exec();
+            // ------------------------------------------------------------------------------------------
 
             // 4. Start container
             long startTime = System.currentTimeMillis();
@@ -167,6 +173,10 @@ public class DockerSandboxService {
             String stderr = getLogs(containerId, false);
             if (stdout == null) stdout = "";
             if (stderr == null) stderr = "";
+            
+            if (exitCode != 0) {
+                log.error("Container {} exited with code {}. Stdout: {} Stderr: {}", containerId, exitCode, stdout, stderr);
+            }
 
             return SandboxResult.builder()
                     .stdout(stdout.trim())
@@ -288,9 +298,7 @@ public class DockerSandboxService {
             String networkName = "codecheckhub_codecheckHub-net";
             
             HostConfig hostConfig = HostConfig.newHostConfig()
-                    .withNetworkMode(networkName) // Kết nối chung mạng với sonarqube
-                    .withBinds(new Bind(sourceDir.toAbsolutePath().toString(),
-                            new Volume("/usr/src"), AccessMode.ro));
+                    .withNetworkMode(networkName); // Kết nối chung mạng với sonarqube
 
             CreateContainerResponse container = dockerClient.createContainerCmd(image)
                     .withCmd(
@@ -305,6 +313,15 @@ public class DockerSandboxService {
                     .exec();
 
             containerId = container.getId();
+            
+            // --- BUG FIX: Copy file into container to avoid Docker-out-of-Docker bind mount issues ---
+            dockerClient.copyArchiveToContainerCmd(containerId)
+                    .withHostResource(sourceDir.toAbsolutePath().toString())
+                    .withRemotePath("/usr/src")
+                    .withDirChildrenOnly(true)
+                    .exec();
+            // ------------------------------------------------------------------------------------------
+
             dockerClient.startContainerCmd(containerId).exec();
 
             final String finalContainerId = containerId;

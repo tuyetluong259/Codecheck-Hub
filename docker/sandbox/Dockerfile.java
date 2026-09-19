@@ -1,5 +1,5 @@
 # Java Sandbox Image — OpenJDK 21 minimal
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jdk-alpine
 
 WORKDIR /sandbox
 

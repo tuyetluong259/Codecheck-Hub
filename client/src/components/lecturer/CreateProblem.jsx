@@ -40,6 +40,8 @@ export default function CreateProblem({ isEdit = false }) {
   const [duplicationEnabled, setDuplicationEnabled] = useState(true);
   const [qualityGateEnabled, setQualityGateEnabled] = useState(true);
   const [duplicationPercent, setDuplicationPercent] = useState("10%");
+  
+  const [isPractice, setIsPractice] = useState(false);
 
   const [courseId, setCourseId] = useState("");
   const [courses, setCourses] = useState([]);
