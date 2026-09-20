@@ -81,6 +81,18 @@ public class ProblemController {
         return ResponseEntity.ok(problemService.createProblem(request));
     }
 
+    @PutMapping("/{id}")
+    @Operation(summary = "Update an existing problem (Teacher/Admin only)")
+    public ResponseEntity<Problem> updateProblem(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Role", defaultValue = "STUDENT") String role,
+            @RequestBody CreateProblemRequest request) {
+        if (!"TEACHER".equals(role) && !"ADMIN".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only teachers or admins can update problems");
+        }
+        return ResponseEntity.ok(problemService.updateProblem(id, request));
+    }
+
     @PutMapping("/{id}/publish")
     @Operation(summary = "Publish or unpublish a problem (Admin only)")
     public ResponseEntity<Problem> updateProblemPublishStatus(

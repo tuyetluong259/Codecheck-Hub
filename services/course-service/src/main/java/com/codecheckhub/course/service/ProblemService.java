@@ -124,6 +124,45 @@ public class ProblemService {
     }
 
     @Transactional
+    public Problem updateProblem(UUID id, CreateProblemRequest request) {
+        Problem problem = getProblemById(id);
+        problem.setTitle(request.getTitle());
+        problem.setDescription(request.getDescription());
+        problem.setInputFormat(request.getInputFormat());
+        problem.setOutputFormat(request.getOutputFormat());
+        problem.setConstraints(request.getConstraints());
+        problem.setDifficulty(Problem.Difficulty.valueOf(request.getDifficulty()));
+        problem.setCourseId(request.getCourseId());
+        problem.setDeadline(request.getDeadline());
+        problem.setTimeLimitMs(request.getTimeLimitMs());
+        problem.setMemoryLimitMb(request.getMemoryLimitMb());
+        problem.setMaxScore(request.getMaxScore());
+        problem.setPublished(request.isPublished());
+        problem.setMaxCyclomaticComplexity(request.getMaxCyclomaticComplexity());
+        problem.setNamingConvention(request.getNamingConvention());
+        problem.setPractice(request.isPractice());
+
+        Problem updatedProblem = problemRepository.save(problem);
+
+        // Simple approach: delete old test cases and insert new ones
+        testCaseRepository.deleteAll(testCaseRepository.findByProblemIdOrderByOrderIndexAsc(id));
+
+        if (request.getTestCases() != null && !request.getTestCases().isEmpty()) {
+            List<TestCase> testCases = request.getTestCases().stream().map(tc -> TestCase.builder()
+                    .problemId(updatedProblem.getId())
+                    .input(tc.getInput())
+                    .expectedOutput(tc.getExpectedOutput())
+                    .isHidden(tc.isHidden())
+                    .points(tc.getPoints() > 0 ? tc.getPoints() : 10)
+                    .orderIndex(tc.getOrderIndex())
+                    .build()).collect(Collectors.toList());
+            testCaseRepository.saveAll(testCases);
+        }
+
+        return updatedProblem;
+    }
+
+    @Transactional
     public Problem updateProblemPublishStatus(UUID id, boolean published) {
         Problem problem = getProblemById(id);
         problem.setPublished(published);

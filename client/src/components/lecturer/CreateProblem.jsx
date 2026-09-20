@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Save, Clipboard, Settings2, ShieldCheck, ChevronRight, ChevronLeft, Plus, Trash2, ArrowLeft } from "lucide-react";
 import api from "../../api/axios";
 
@@ -21,8 +21,9 @@ function Toggle({ enabled, onChange }) {
 export default function CreateProblem({ isEdit = false }) {
   const [activeTab, setActiveTab] = useState(1);
   const navigate = useNavigate();
+  const { id } = useParams();
 
-  const [title, setTitle] = useState(isEdit ? "Valid Parentheses" : "");
+  const [title, setTitle] = useState(isEdit ? "Loading..." : "");
   const [difficulty, setDifficulty] = useState("MEDIUM");
   const [description, setDescription] = useState("");
   const [algorithmTag, setAlgorithmTag] = useState("");
@@ -59,7 +60,7 @@ export default function CreateProblem({ isEdit = false }) {
         setLoadingCourses(true);
         const res = await api.get('/courses/lecturer');
         setCourses(res.data);
-        if (res.data.length > 0) setCourseId(res.data[0].id);
+        if (res.data.length > 0 && !isEdit) setCourseId(res.data[0].id);
       } catch (err) {
         console.error("Failed to fetch courses", err);
       } finally {
@@ -67,7 +68,74 @@ export default function CreateProblem({ isEdit = false }) {
       }
     };
     fetchCourses();
-  }, []);
+  }, [isEdit]);
+
+  useEffect(() => {
+    if (isEdit && id) {
+      const fetchProblemDetails = async () => {
+        try {
+          const res = await api.get(`/problems/${id}`);
+          const problem = res.data;
+          
+          setTitle(problem.title);
+          setDescription(problem.description || "");
+          setInputFormat(problem.inputFormat || "");
+          setOutputFormat(problem.outputFormat || "");
+          setConstraints(problem.constraints || "");
+          setDifficulty(problem.difficulty);
+          setCourseId(problem.courseId);
+          setCpuLimit(problem.timeLimitMs);
+          setRamLimit(problem.memoryLimitMb);
+          setIsPractice(problem.isPractice);
+          
+          if (problem.maxCyclomaticComplexity != null) {
+            setComplexityEnabled(true);
+            setComplexity(problem.maxCyclomaticComplexity);
+          } else {
+            setComplexityEnabled(false);
+          }
+
+          if (problem.namingConvention != null) {
+            setNamingEnabled(true);
+            setVarNaming(problem.namingConvention);
+          } else {
+            setNamingEnabled(false);
+          }
+
+          // Fetch test cases
+          const tcRes = await api.get(`/test-cases?problemId=${id}&isPublic=false`);
+          const allCases = tcRes.data || [];
+          
+          const publicCases = allCases.filter(tc => !tc.isHidden).map((tc, index) => ({
+            id: tc.id || Date.now() + Math.random(),
+            label: `Sample Case #${index + 1}`,
+            input: tc.input || "",
+            expectedOutput: tc.expectedOutput || "",
+            isHidden: false,
+            points: tc.points || 10,
+            orderIndex: tc.orderIndex || index
+          }));
+          
+          const privateCases = allCases.filter(tc => tc.isHidden).map((tc, index) => ({
+            id: tc.id || Date.now() + Math.random(),
+            label: `Hidden Case #${index + 1}`,
+            input: tc.input || "",
+            expectedOutput: tc.expectedOutput || "",
+            isHidden: true,
+            points: tc.points || 10,
+            orderIndex: tc.orderIndex || index
+          }));
+
+          if (publicCases.length > 0) setTestCases(publicCases);
+          if (privateCases.length > 0) setHiddenTestCases(privateCases);
+          
+        } catch (err) {
+          console.error("Failed to fetch problem details", err);
+        }
+      };
+      fetchProblemDetails();
+    }
+  }, [isEdit, id]);
 
   const handleAddSampleCase = () => {
     const newId = Date.now();
@@ -123,11 +191,15 @@ export default function CreateProblem({ isEdit = false }) {
           ...hiddenTestCases.map(t => ({ input: t.input, expectedOutput: t.expectedOutput, isHidden: true, points: t.points, orderIndex: t.orderIndex }))
         ].filter(t => t.input.trim() !== "" || t.expectedOutput.trim() !== "")
       };
-      await api.post('/problems', payload);
+      if (isEdit) {
+        await api.put(`/problems/${id}`, payload);
+      } else {
+        await api.post('/problems', payload);
+      }
       navigate("/lecturer/problems");
     } catch (err) {
       console.error(err);
-      alert("Tạo bài tập thất bại!");
+      alert(isEdit ? "Cập nhật bài tập thất bại!" : "Tạo bài tập thất bại!");
     }
   };
 
@@ -138,7 +210,7 @@ export default function CreateProblem({ isEdit = false }) {
           <button onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-slate-200 text-slate-500 transition" title="Quay lại">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-4xl font-black tracking-tight text-slate-800">{isEdit ? "Edit Problem: Valid Parentheses" : "Create New Problem"}</h1>
+          <h1 className="text-4xl font-black tracking-tight text-slate-800">{isEdit ? `Edit Problem: ${title !== "Loading..." ? title : ""}` : "Create New Problem"}</h1>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/lecturer/problems")} className="rounded-xl border border-[#7db5ff] bg-white px-5 py-2.5 text-sm font-bold text-[#1d4ed8] hover:bg-[#eef5ff]">Cancel</button>
